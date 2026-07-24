@@ -825,6 +825,28 @@ function relocateMessageQuery(folder, parsed, accountId, msgId, gtdFolders) {
   };
 }
 
+// Intra-folder UID-churn dedup. Gmail can hand a label copy a *fresh UID without bumping
+// UIDVALIDITY* (so the syncMessages/backfill UIDVALIDITY purge never fires), and the
+// cross-folder relocate above deliberately sits out a *multi-labeled* message via its
+// `1 = COUNT(message_id)` guard — a "1: to respond" message also lives in INBOX/All Mail, so
+// COUNT > 1 and the relocate never repoints it. With both dedups sitting this one out, a new
+// UID for a message already present in THIS folder makes the INSERT below add a SECOND row
+// instead of updating the existing one, and the folder accumulates one duplicate per message
+// every sync (observed live: ~178 rows for a 52-message Gmail label). Reconcile then keeps
+// hard-deleting the stale-UID orphans, so the folder churns and the live set collapses.
+//
+// `uid` is THIS folder's current server UID for the message (it was just fetched from this
+// mailbox), so any *same-folder* row carrying the same message_id but a different UID is a
+// stale duplicate by definition — delete it before the upsert so exactly one row per
+// (account, folder, message_id) survives. The folder is pinned, so sibling rows in OTHER
+// folders (the INBOX / All Mail copies) are never touched and multi-label copies are kept.
+export function dedupeFolderByMessageIdQuery(accountId, folder, messageId, uid) {
+  return {
+    sql: 'DELETE FROM messages WHERE account_id = $1 AND folder = $2 AND message_id = $3 AND uid <> $4',
+    params: [accountId, folder, messageId, uid],
+  };
+}
+
 // Strip null bytes that PostgreSQL's UTF-8 encoding rejects (some emails contain them)
 function sanitizeStr(str) {
   if (typeof str !== 'string') return str;
@@ -2451,6 +2473,11 @@ export class ImapManager {
                 relocateMessageQuery(folder, parsed, account.id, msgId, gtdFolderPaths);
               const relocated = await query(relocateSql, relocateParams);
               if (relocated.rows.length > 0) return;
+
+              // Collapse any stale-UID duplicate of this message already sitting in THIS same
+              // folder (Gmail label UID churn) before the upsert — see dedupeFolderByMessageIdQuery.
+              const dedupe = dedupeFolderByMessageIdQuery(account.id, folder, msgId, parsed.uid);
+              await query(dedupe.sql, dedupe.params);
             }
 
             let msgCategory = null;
@@ -3102,6 +3129,11 @@ export class ImapManager {
                     relocateMessageQuery(folder, parsed, account.id, bfMsgId, gtdFolderPaths);
                   const relocated = await query(relocateSql, relocateParams);
                   if (relocated.rows.length > 0) { backfilledRows += relocated.rows.length; continue; }
+
+                  // Collapse any stale-UID duplicate of this message already in THIS same folder
+                  // (Gmail label UID churn) before the upsert — see dedupeFolderByMessageIdQuery.
+                  const dedupe = dedupeFolderByMessageIdQuery(account.id, folder, bfMsgId, parsed.uid);
+                  await query(dedupe.sql, dedupe.params);
                 }
 
                 let bfCategory = null;
