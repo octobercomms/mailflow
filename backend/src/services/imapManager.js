@@ -447,6 +447,17 @@ const PROVIDERS = {
     pushesFlags: false,
     snippetIndex: false,
     speculativeFetch: false,
+    // Gmail is LABEL-based: one message legitimately appears in several mailboxes at once
+    // (INBOX + any user label + All Mail) as independent per-folder copies with their own
+    // UIDs. The move-detector relocate-in-place (RELOCATE_MESSAGE_SQL) treats "same
+    // Message-ID in another folder" as a MOVE and collapses those legitimate siblings into a
+    // SINGLE row, then repoints it to whichever folder synced last — so INBOX (synced every
+    // ~60 s) and a heavily-overlapping user label like "1: to respond" endlessly steal the
+    // one row from each other and the label's count(*) oscillates (unlogged, because it is an
+    // UPDATE, not a DELETE). Skip relocate for label-based providers: a plain per-folder
+    // INSERT builds the correct sibling rows, and reconcileDeletes still removes a copy that
+    // genuinely leaves a folder on the server.
+    labelBased: true,
     skipFolderPatterns: ['all mail', '[gmail]/starred', '[gmail]/important'],
     // [Gmail] is a namespace container — not a selectable mailbox. It must be
     // matched exactly so that real subfolders like [Gmail]/Drafts are not skipped.
@@ -2446,7 +2457,13 @@ export class ImapManager {
             // than inserting a duplicate. The COUNT=1 guard prevents incorrectly
             // merging Gmail's virtual-folder copies (same message_id in INBOX and
             // [Gmail]/All Mail simultaneously).
-            if (msgId) {
+            //
+            // Skipped for label-based providers (Gmail): there a message legitimately lives in
+            // several mailboxes at once, so "same Message-ID elsewhere" is a sibling, not a
+            // move. Relocating would collapse the siblings to one row and ping-pong it between
+            // INBOX and the label every sync (see PROVIDERS.google.labelBased). Fall through to
+            // the per-folder INSERT instead; reconcileDeletes handles genuine per-folder removals.
+            if (msgId && !provider.labelBased) {
               const { sql: relocateSql, params: relocateParams } =
                 relocateMessageQuery(folder, parsed, account.id, msgId, gtdFolderPaths);
               const relocated = await query(relocateSql, relocateParams);
@@ -3097,7 +3114,10 @@ export class ImapManager {
                 const bfRefs     = sanitizeStr(parsed.references);
                 const bfThreadId = await computeThreadId(account.id, bfMsgId, bfReplyTo, bfRefs, sanitizeStr(parsed.subject));
 
-                if (bfMsgId) {
+                // Skipped for label-based providers (Gmail) — see the sync processMsg relocate
+                // and PROVIDERS.google.labelBased: relocating collapses legitimate multi-label
+                // siblings and ping-pongs the row between INBOX and the label.
+                if (bfMsgId && !cfg.labelBased) {
                   const { sql: relocateSql, params: relocateParams } =
                     relocateMessageQuery(folder, parsed, account.id, bfMsgId, gtdFolderPaths);
                   const relocated = await query(relocateSql, relocateParams);

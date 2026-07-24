@@ -33,6 +33,18 @@ describe('providerProfile — host detection', () => {
     expect(providerProfile(account(host)).pushesFlags).toBe(false);
     expect(providerProfile(account(host)).speculativeFetch).toBe(false);
     expect(providerProfile(account(host)).snippetIndex).toBe(false);
+    // Gmail is label-based, so relocate-in-place must be skipped (multi-label siblings).
+    expect(providerProfile(account(host)).labelBased).toBe(true);
+  });
+
+  it.each([
+    ['imap.mail.yahoo.com'],
+    ['imap.mail.me.com'],
+    ['outlook.office365.com'],
+    ['mail.purelymail.com'],
+    ['imap.example.org'],
+  ])('leaves relocate enabled (not label-based) for non-Gmail host %s', host => {
+    expect(providerProfile(account(host)).labelBased).toBeFalsy();
   });
 
   it.each([
