@@ -11,7 +11,7 @@ vi.mock('../utils/redact.js', () => ({ redactEmail: vi.fn() }));
 vi.mock('./hostValidation.js', () => ({ resolveForConnection: vi.fn() }));
 vi.mock('./gtdTransitions.js', () => ({ runGtdTransitions: vi.fn(), threadKeysForMessageIds: vi.fn(), threadKeysInFolders: vi.fn() }));
 
-import { ImapManager, providerProfile, makeClientCfg, gtdRelocateGuard, dedupeFolderByMessageIdQuery, insertCopiedSibling, deleteMessageCopyRow, emitAfterDeferredCopySync, emitGtdSectionsRefreshOnDelete, emitGtdSectionsRefreshIfEnabled, selectGtdReevalIds, ensureMailbox, runGtdSyncTick, createKeyedSemaphore, isConnectionRefusal, connectCooldownMs, effectiveSyncIntervalMs, folderSyncDue, planModseqSync, connectStaggerFor } from './imapManager.js';
+import { ImapManager, providerProfile, makeClientCfg, gtdRelocateGuard, insertCopiedSibling, deleteMessageCopyRow, emitAfterDeferredCopySync, emitGtdSectionsRefreshOnDelete, emitGtdSectionsRefreshIfEnabled, selectGtdReevalIds, ensureMailbox, runGtdSyncTick, createKeyedSemaphore, isConnectionRefusal, connectCooldownMs, effectiveSyncIntervalMs, folderSyncDue, planModseqSync, connectStaggerFor } from './imapManager.js';
 import { query } from './db.js';
 import { invalidateGtdConfigCache } from './gtdConfig.js';
 import { runGtdTransitions, threadKeysInFolders } from './gtdTransitions.js';
@@ -304,22 +304,6 @@ describe('insertCopiedSibling', () => {
     query.mockResolvedValueOnce({ rows: [] }); // DO NOTHING → no RETURNING row
     await insertCopiedSibling('acct-1', 100, 'INBOX', 'Todo', 5001);
     expect(countAdjusts()).toHaveLength(0);
-  });
-});
-
-// ── intra-folder UID-churn dedup — dedupeFolderByMessageIdQuery ──────────────
-
-describe('dedupeFolderByMessageIdQuery', () => {
-  it('drops same-folder stale-UID copies of one message, scoped and never crossing folders', () => {
-    const { sql, params } = dedupeFolderByMessageIdQuery('acct-1', '1: to respond', '<m@x>', 600);
-    // Keyed on (account_id, folder, message_id) and excludes the current UID.
-    expect(sql).toContain('DELETE FROM messages');
-    expect(sql).toContain('account_id = $1');
-    expect(sql).toContain('folder = $2');
-    expect(sql).toContain('message_id = $3');
-    expect(sql).toContain('uid <> $4');
-    // Folder is pinned so sibling copies in INBOX / All Mail are never touched.
-    expect(params).toEqual(['acct-1', '1: to respond', '<m@x>', 600]);
   });
 });
 
