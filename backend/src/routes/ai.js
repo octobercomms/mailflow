@@ -208,4 +208,145 @@ router.post('/ai/chat', requireAuth, async (req, res) => {
   }
 });
 
+// ── AI task list ──────────────────────────────────────────────────────────────
+// Reads every message in one account's folder (e.g. a "to respond" folder) and
+// asks the configured AI provider for a prioritized, de-duplicated task list of
+// what actually needs the user's action. Runs per account + folder (the user
+// selects the folder in the UI). Non-streaming: returns structured JSON the panel
+// renders, each task carrying the source email id so the UI can open it.
+const AI_TASKS_MAX_EMAILS = 120;
+
+router.post('/ai/tasks', requireAuth, async (req, res) => {
+  const { accountId, folder } = req.body || {};
+  if (!accountId || !folder) {
+    return res.status(400).json({ error: 'accountId and folder are required' });
+  }
+
+  const cfgResult = await query("SELECT value FROM system_settings WHERE key = 'ai_config'");
+  if (!cfgResult.rows.length) return res.status(503).json({ error: 'AI provider not configured' });
+  let cfg;
+  try { cfg = JSON.parse(cfgResult.rows[0].value); } catch {
+    return res.status(500).json({ error: 'Corrupted AI config' });
+  }
+  if (!cfg.enabled) return res.status(503).json({ error: 'AI features are disabled' });
+  if (!cfg.baseUrl || !cfg.model) return res.status(503).json({ error: 'AI provider not fully configured' });
+
+  // Account must belong to the caller.
+  const acct = await query(
+    'SELECT id, email FROM email_accounts WHERE id = $1 AND user_id = $2',
+    [accountId, req.session.userId]
+  );
+  if (!acct.rows.length) return res.status(404).json({ error: 'Account not found' });
+
+  // Pull the folder's messages (newest first, capped). The local index already
+  // holds subject/sender/snippet, so no IMAP round-trip is needed.
+  const msgResult = await query(
+    `SELECT id, subject, from_name, from_email, snippet, date, is_read
+       FROM messages
+      WHERE account_id = $1 AND folder = $2
+      ORDER BY date DESC
+      LIMIT $3`,
+    [accountId, folder, AI_TASKS_MAX_EMAILS + 1]
+  );
+  const capped = msgResult.rows.length > AI_TASKS_MAX_EMAILS;
+  const emails = msgResult.rows.slice(0, AI_TASKS_MAX_EMAILS);
+  if (emails.length === 0) {
+    return res.json({ tasks: [], scanned: 0, capped: false });
+  }
+
+  // Build the prompt. Emails are numbered [1..N]; the model refers back by index.
+  const clip = (s, n) => (s || '').replace(/\s+/g, ' ').trim().slice(0, n);
+  const lines = emails.map((m, i) => {
+    const from = clip(m.from_name || m.from_email || 'unknown', 80);
+    const subject = clip(m.subject, 160) || '(no subject)';
+    const when = m.date ? new Date(m.date).toISOString().slice(0, 10) : '';
+    const snippet = clip(m.snippet, 240);
+    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}\nSnippet: ${snippet}`;
+  }).join('\n\n');
+
+  const system = 'You turn a folder of emails into a concise, prioritized to-do list. ' +
+    'Only include emails that genuinely require an action FROM THE USER (a reply, a decision, ' +
+    'a task, a follow-up). Skip newsletters, receipts, notifications, and anything already handled. ' +
+    'Merge related emails into a single task. Keep each task short, specific, and action-first ' +
+    '(start with a verb). Do not invent tasks that are not supported by an email.';
+  const user = `Here are the emails in the "${folder}" folder for ${acct.rows[0].email} (newest first):\n\n` +
+    `${lines}\n\n` +
+    'Return ONLY valid JSON, no prose, in this exact shape:\n' +
+    '{"tasks":[{"emailIndex":<number>,"title":"<short action>","priority":"high|medium|low"}]}\n' +
+    'emailIndex is the [n] of the email the task comes from. Order tasks high → low priority. ' +
+    'If nothing needs action, return {"tasks":[]}.';
+
+  const apiKey = cfg.apiKey ? decrypt(cfg.apiKey) : null;
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  let content;
+  try {
+    const aiRes = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+        stream: false,
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      return res.status(502).json({ error: `AI provider error (${aiRes.status}): ${errText.slice(0, 300)}` });
+    }
+    const data = await aiRes.json();
+    content = data?.choices?.[0]?.message?.content;
+    if (typeof content !== 'string') {
+      return res.status(502).json({ error: 'AI provider returned an unexpected response' });
+    }
+  } catch (err) {
+    return res.status(502).json({ error: `AI request failed: ${err.message}` });
+  }
+
+  // Parse the JSON the model returned, tolerating ```json fences or surrounding prose.
+  let parsed;
+  try {
+    let text = content.trim();
+    const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence) text = fence[1].trim();
+    else {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start >= 0 && end > start) text = text.slice(start, end + 1);
+    }
+    parsed = JSON.parse(text);
+  } catch {
+    return res.status(502).json({ error: 'Could not parse the AI task list' });
+  }
+
+  const rank = { high: 0, medium: 1, low: 2 };
+  const tasks = (Array.isArray(parsed?.tasks) ? parsed.tasks : [])
+    .map(t => {
+      const idx = Number(t?.emailIndex);
+      const src = Number.isInteger(idx) && idx >= 1 && idx <= emails.length ? emails[idx - 1] : null;
+      const priority = ['high', 'medium', 'low'].includes(t?.priority) ? t.priority : 'medium';
+      const title = clip(t?.title, 200);
+      if (!title) return null;
+      return src
+        ? {
+            title, priority,
+            emailId: src.id,
+            subject: src.subject || '(no subject)',
+            from: src.from_name || src.from_email || 'unknown',
+            date: src.date,
+          }
+        : { title, priority, emailId: null };
+    })
+    .filter(Boolean)
+    .sort((a, b) => rank[a.priority] - rank[b.priority]);
+
+  res.json({ tasks, scanned: emails.length, capped });
+});
+
 export default router;

@@ -9,6 +9,7 @@ import { useSwipeRow } from '../hooks/useSwipeRow.js';
 import ContextMenu from './ContextMenu.jsx';
 import RowHoverActions from './RowHoverActions.jsx';
 import GtdTabList from './GtdTabList.jsx';
+import TaskListModal from './TaskListModal.jsx';
 import {
   gtdActiveForContext, buildGtdDisplaySections, GTD_COLORS, GTD_CHIP_BG, sectionBadge, isSelectedRow,
   classifyThread, unclassifyThread,
@@ -153,6 +154,8 @@ export default function MessageList() {
   }, []);
 
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [showTaskList, setShowTaskList] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [activeCategory, setActiveCategory] = useState('primary');
   const [currentPage, setCurrentPage] = useState(1);
   const currentPageRef = useRef(1);
@@ -197,6 +200,9 @@ export default function MessageList() {
 
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { setActiveCategory('primary'); setActiveGtdTab(null); }, [selectedAccountId, selectedFolder, setActiveGtdTab]);
+
+  // Is an AI provider configured? Gates the "Task list" button.
+  useEffect(() => { api.aiStatus().then(s => setAiEnabled(!!s.enabled)).catch(() => setAiEnabled(false)); }, []);
   useEffect(() => {
     const markOpening = () => {
       recentMessageOpenUntilRef.current = Date.now() + 1500;
@@ -2356,6 +2362,25 @@ export default function MessageList() {
             </svg>
           </button>
 
+          {/* AI task list — scans the current account's folder for actionable items */}
+          {aiEnabled && selectedAccountId && selectedFolder && (
+            <button
+              onClick={() => setShowTaskList(true)}
+              title={t('tasks.button', { defaultValue: 'Task list from this folder' })}
+              aria-label={t('tasks.button', { defaultValue: 'Task list from this folder' })}
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-tertiary)',
+                cursor: 'pointer', padding: 0, borderRadius: 7, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+              </svg>
+            </button>
+          )}
+
           {/* Select / Cancel — replaces compose button; FAB is the primary compose affordance */}
           {selectionMode ? (
             <button
@@ -3484,6 +3509,16 @@ export default function MessageList() {
             defaultMoveView={contextMenu.defaultMoveView}
             onClose={() => setContextMenu(null)}
             onAction={(action, data) => handleContextAction(action, contextMenu.message, data)}
+          />
+        )}
+
+        {showTaskList && selectedAccountId && selectedFolder && (
+          <TaskListModal
+            accountId={selectedAccountId}
+            folder={selectedFolder}
+            folderLabel={selectedFolder}
+            onClose={() => setShowTaskList(false)}
+            onOpenEmail={(id) => useStore.getState().setSelectedMessage(id)}
           />
         )}
 

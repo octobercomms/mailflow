@@ -316,6 +316,9 @@ export const api = {
   },
   gtdClassify: (messageId, state) => request('POST', '/gtd/classify', { messageId, state }),
   gtdUnclassify: (messageId, state) => request('DELETE', '/gtd/classify', { messageId, state }),
+  // AI — is a provider configured/enabled, and generate a task list from a folder.
+  aiStatus: () => request('GET', '/ai/status'),
+  aiTasks: (accountId, folder) => request('POST', '/ai/tasks', { accountId, folder }),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.
