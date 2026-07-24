@@ -2260,6 +2260,27 @@ export class ImapManager {
           ON CONFLICT (account_id, path) DO NOTHING
         `, [account.id, delimiter]);
       }
+
+      // Prune folders that no longer exist on the server — e.g. a renamed or
+      // deleted Gmail label. Without this the stale row (and its old messages)
+      // lingers forever, showing up as a duplicate old-name folder alongside the
+      // new one. Only runs after a *successful, non-empty* LIST so a partial or
+      // failed listing can never wipe real folders; INBOX is always kept (many
+      // servers omit it from LIST per RFC 3501).
+      if (mailboxes.length > 0) {
+        const serverPaths = mailboxes.map(mb => mb.path);
+        serverPaths.push('INBOX');
+        const stale = await query(
+          'SELECT path FROM folders WHERE account_id = $1 AND path <> ALL($2::text[])',
+          [account.id, serverPaths]
+        );
+        if (stale.rows.length) {
+          const stalePaths = stale.rows.map(r => r.path);
+          await query('DELETE FROM messages WHERE account_id = $1 AND folder = ANY($2::text[])', [account.id, stalePaths]);
+          await query('DELETE FROM folders  WHERE account_id = $1 AND path   = ANY($2::text[])', [account.id, stalePaths]);
+          console.log(`Pruned ${stalePaths.length} stale folder(s) for ${logAccount(account)}: ${stalePaths.join(', ')}`);
+        }
+      }
     } catch (err) {
       console.error(`Folder sync error for ${logAccount(account)}:`, err.message);
     }
