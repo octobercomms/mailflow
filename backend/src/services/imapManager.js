@@ -4900,9 +4900,13 @@ export class ImapManager {
       await withFreshClient(account, async (client) => {
         for (const folder of folders) {
           let serverUids;
+          let serverExists = null;
           try {
             const lock = await client.getMailboxLock(folder);
             try {
+              // EXISTS is the server's authoritative message count for the mailbox; we
+              // compare it to the SEARCH result below to detect an incomplete search.
+              serverExists = client.mailbox?.exists ?? null;
               serverUids = await client.search({ all: true }, { uid: true });
             } finally {
               lock.release();
@@ -4912,7 +4916,7 @@ export class ImapManager {
             console.warn(`Reconcile: could not open ${logAccount(account)}/${folder}: ${extractImapError(err)}`);
             continue;
           }
-          serverUidsByFolder.set(folder, new Set(serverUids));
+          serverUidsByFolder.set(folder, { uids: new Set(serverUids), exists: serverExists });
         }
       });
     } catch (err) {
@@ -4923,7 +4927,7 @@ export class ImapManager {
     // Phase 2 — diff each folder's server UIDs against the DB and delete orphans.
     // Runs outside withFreshClient so DB errors never cause unnecessary pool eviction.
     let deletedCount = 0;
-    for (const [folder, serverUidSet] of serverUidsByFolder) {
+    for (const [folder, { uids: serverUidSet, exists: serverExists }] of serverUidsByFolder) {
       const dbResult = await query(
         'SELECT uid FROM messages WHERE account_id = $1 AND folder = $2 AND (synced_at IS NULL OR synced_at < $3)',
         [account.id, folder, reconcileStartedAt]
@@ -4933,6 +4937,23 @@ export class ImapManager {
         .filter(uid => !serverUidSet.has(uid) && !this._isMoveUidGuarded(account.id, folder, uid));
 
       if (orphanUids.length === 0) continue;
+
+      // Safety guard against an INCOMPLETE server SEARCH deleting live messages.
+      // A SEARCH ALL must return exactly EXISTS UIDs; some servers (notably Gmail
+      // after heavy label reindexing) return fewer even though FETCH still serves
+      // every message — so trusting it would delete mail that is really still there
+      // ("finds them but can't hold them"). If the search under-reports vs the
+      // mailbox's own EXISTS count — or comes back empty for a non-empty folder —
+      // treat it as unreliable and skip. Genuine deletions still arrive via per-message
+      // EXPUNGE and get reconciled on a later tick once the search is consistent.
+      if (serverExists != null && serverUidSet.size < serverExists) {
+        console.warn(`Reconcile: SEARCH returned ${serverUidSet.size} UIDs but EXISTS=${serverExists} for ${logAccount(account)}/${folder} — incomplete search, skipping delete of ${orphanUids.length}.`);
+        continue;
+      }
+      if (serverUidSet.size === 0 && dbResult.rows.length > 0) {
+        console.warn(`Reconcile: server returned 0 UIDs for ${logAccount(account)}/${folder} but ${dbResult.rows.length} stored — skipping delete (stale/partial search).`);
+        continue;
+      }
 
       console.log(`Reconcile: removing ${orphanUids.length} server-deleted message(s) from ${logAccount(account)}/${folder}`);
       // Re-assert the cutoff in the DELETE: a row updated to a fresh synced_at between
