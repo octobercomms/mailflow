@@ -1,6 +1,6 @@
 {
-  "name": "OC Mail",
-  "short_name": "OC Mail",
+  "name": "October Mail",
+  "short_name": "October Mail",
   "description": "October's unified inbox",
   "start_url": "/",
   "display": "standalone",
