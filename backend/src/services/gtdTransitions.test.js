@@ -25,13 +25,26 @@ const fakeManager = () => ({ removeMessageCopy: vi.fn().mockResolvedValue({}), b
 // One switchboard for the queries the engine issues: the sent-message Message-ID lookup
 // (recognised by message_id = ANY), the owner-address UNION (account_aliases), and the
 // per-thread row load (thread_key = ANY).
-function mockQuery({ owner = [{ addr: 'me@example.com' }], rows = [], sent = [] }) {
+function mockQuery({ owner = [{ addr: 'me@example.com' }], rows = [], sent = [], folderCount = null }) {
   query.mockImplementation((sql) => {
     if (sql.includes('message_id = ANY')) return Promise.resolve({ rows: sent });
     if (sql.includes('account_aliases')) return Promise.resolve({ rows: owner });
     if (sql.includes('thread_key = ANY')) return Promise.resolve({ rows });
+    // Mass-strip guard's per-folder live-row count. Default null → engine reads 0.
+    if (sql.includes('COUNT(*)::int AS n') && sql.includes('is_deleted = false')) {
+      return Promise.resolve({ rows: folderCount == null ? [] : [{ n: folderCount }] });
+    }
     return Promise.resolve({ rows: [] });
   });
+}
+
+// Build N single-message threads each carrying one copy in `folder`, newest FROM `from`.
+function threadsIn(folder, n, from) {
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    rows.push({ thread_key: `t${i}`, uid: 1000 + i, folder, from_email: from, date: '2026-07-09T12:00:00Z', id: `r${i}` });
+  }
+  return rows;
 }
 
 // ── getOwnerAddresses ────────────────────────────────────────────────────────
@@ -227,6 +240,33 @@ describe('runGtdTransitions', () => {
     await runGtdTransitions(mgr, account, ['t1']);
     expect(mgr.removeMessageCopy).toHaveBeenCalledTimes(1);
     expect(mgr.broadcast).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Mass-strip safety guard ─────────────────────────────────────────────────
+  it('VETOES a run that would strip most of a whole label folder in one pass (the "1: to respond" drain)', async () => {
+    // 50 "to respond" threads, each newest FROM someone else → the 'other' rule would strip
+    // every Watch copy. Folder holds 52 live rows → 50/52 > 50% and > floor → guard trips.
+    mockQuery({ rows: threadsIn('Watch', 50, 'them@other.com'), folderCount: 52 });
+    const mgr = fakeManager();
+    await runGtdTransitions(mgr, account, threadsIn('Watch', 50, 'them@other.com').map(r => r.thread_key));
+    expect(mgr.removeMessageCopy).not.toHaveBeenCalled();
+    expect(mgr.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('still strips a large batch when it is a SMALL fraction of a big folder', async () => {
+    // 12 threads to strip out of a 500-row folder → 12/500 < 50% → not a mass strip, allowed.
+    mockQuery({ rows: threadsIn('Watch', 12, 'them@other.com'), folderCount: 500 });
+    const mgr = fakeManager();
+    await runGtdTransitions(mgr, account, threadsIn('Watch', 12, 'them@other.com').map(r => r.thread_key));
+    expect(mgr.removeMessageCopy).toHaveBeenCalledTimes(12);
+  });
+
+  it('still strips a normal handful even when it is most of a tiny folder (under the floor)', async () => {
+    // 3 threads out of 3 rows — 100% but only 3 copies (≤ floor) → a real transition, allowed.
+    mockQuery({ rows: threadsIn('Watch', 3, 'them@other.com'), folderCount: 3 });
+    const mgr = fakeManager();
+    await runGtdTransitions(mgr, account, threadsIn('Watch', 3, 'them@other.com').map(r => r.thread_key));
+    expect(mgr.removeMessageCopy).toHaveBeenCalledTimes(3);
   });
 
   it('tolerates a removeMessageCopy rejection (concurrent external strip) as success', async () => {

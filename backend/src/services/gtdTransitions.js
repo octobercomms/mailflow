@@ -20,6 +20,22 @@ const STRIP_RULE = {
   reference: null,
 };
 
+// ── Mass-strip safety guard thresholds ───────────────────────────────────────
+// A single transition run should only ever strip a HANDFUL of label copies — the few
+// threads whose newest message just moved their state on. Removing a large fraction of an
+// ENTIRE label folder in one run is never a real state change: it means the folder was
+// mapped to a GTD state whose STRIP_RULE matches almost every message it holds (e.g. an
+// ordinary "1: to respond" label pointed at a 'waiting'/'other' state, whose rule fires for
+// every thread whose newest message is from someone else — i.e. every message you still owe
+// a reply), or the periodic GTD tick has entered a re-sync↔strip loop (the tick re-fetches
+// the folder from the server, then strips it again, forever). Either way, executing the run
+// silently drains the folder's LOCAL rows every tick even though the mail is untouched on
+// the server. So the run is vetoed per folder and logged loudly instead. Preserving live
+// mail over an aggressive auto-cleanup mirrors the reconcileDeletes "incomplete search"
+// delete guard. A genuine bulk transition that is vetoed simply lingers and self-heals.
+const GTD_MASS_STRIP_FLOOR = 8;      // runs at/below this many copies per folder are never vetoed
+const GTD_MASS_STRIP_FRACTION = 0.5; // veto when a run would strip >50% of a folder's live rows
+
 // ── Owner-address resolver ───────────────────────────────────────────────────
 // The addresses that count as "me" for an account: its login address plus every
 // configured alias. Aliases are unvalidated free text, so each is reduced to a bare
@@ -146,7 +162,10 @@ export async function runGtdTransitions(imapManager, account, threadKeys) {
     byThread.get(row.thread_key).push(row);
   }
 
-  let anyStripped = false;
+  // Build the full strip PLAN first (decide everything, mutate nothing). Each entry is a
+  // single label-copy removal { folder, uid }. Planning before executing lets the mass-strip
+  // safety guard below veto a pathological run per folder BEFORE any row is deleted.
+  const stripPlan = []; // { folder, uid }
 
   for (const [, threadRows] of byThread) {
     const nonDraft = threadRows.filter((r) => !draftPaths.has(r.folder));
@@ -167,16 +186,57 @@ export async function runGtdTransitions(imapManager, account, threadKeys) {
       if (!shouldStrip) continue;
 
       for (const copy of threadRows.filter((r) => r.folder === folder)) {
-        anyStripped = true;
-        try {
-          await imapManager.removeMessageCopy(account.id, copy.uid, copy.folder);
-        } catch (err) {
-          // An external automation may strip the same label concurrently, so the copy
-          // can already be gone on the server. Treat a failed removal as a successful
-          // strip and move on; the stale DB row reconciles on the next sync.
-          logger.debug(`gtdTransitions: tolerated removeMessageCopy failure uid=${copy.uid} ${copy.folder}: ${err.message}`);
-        }
+        stripPlan.push({ folder: copy.folder, uid: copy.uid });
       }
+    }
+  }
+
+  if (stripPlan.length === 0) return;
+
+  // ── Mass-strip safety guard ──────────────────────────────────────────────────
+  // Per folder, veto the run when it would strip more than GTD_MASS_STRIP_FLOOR copies AND
+  // that is more than GTD_MASS_STRIP_FRACTION of the folder's current live rows. This catches
+  // the observed drain (a user label like "1: to respond" losing ~90% of its rows every tick)
+  // while never blocking a normal small transition. Vetoed strips are logged loudly so the
+  // culprit mapping is visible; the mail stays put. See threshold rationale above.
+  const uidsByFolder = new Map(); // folder -> uid[]
+  for (const s of stripPlan) {
+    if (!uidsByFolder.has(s.folder)) uidsByFolder.set(s.folder, []);
+    uidsByFolder.get(s.folder).push(s.uid);
+  }
+
+  const approved = []; // { folder, uid }
+  for (const [folder, uids] of uidsByFolder) {
+    const { rows: [cnt] } = await query(
+      'SELECT COUNT(*)::int AS n FROM messages WHERE account_id = $1 AND folder = $2 AND is_deleted = false',
+      [account.id, folder]
+    );
+    const folderTotal = cnt?.n ?? 0;
+    if (uids.length > GTD_MASS_STRIP_FLOOR &&
+        (folderTotal === 0 || uids.length / folderTotal > GTD_MASS_STRIP_FRACTION)) {
+      console.warn(
+        `gtdTransitions: mass-strip guard TRIPPED for ${account.id}/${folder} — run would strip ` +
+        `${uids.length} of ${folderTotal} live copies (> ${Math.round(GTD_MASS_STRIP_FRACTION * 100)}%) ` +
+        `in one pass; skipping to protect live mail. Check this account's gtd_folders mapping — an ` +
+        `ordinary label should not be mapped to an auto-stripping GTD state.`
+      );
+      continue;
+    }
+    for (const uid of uids) approved.push({ folder, uid });
+  }
+
+  if (approved.length === 0) return;
+
+  let anyStripped = false;
+  for (const { folder, uid } of approved) {
+    anyStripped = true;
+    try {
+      await imapManager.removeMessageCopy(account.id, uid, folder);
+    } catch (err) {
+      // An external automation may strip the same label concurrently, so the copy
+      // can already be gone on the server. Treat a failed removal as a successful
+      // strip and move on; the stale DB row reconciles on the next sync.
+      logger.debug(`gtdTransitions: tolerated removeMessageCopy failure uid=${uid} ${folder}: ${err.message}`);
     }
   }
 
