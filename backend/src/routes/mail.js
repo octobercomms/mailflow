@@ -1410,6 +1410,123 @@ router.post('/messages/bulk-move', async (req, res) => {
   }
 });
 
+// Cross-account move — the Airmail-style feature MailFlow's single-account move
+// lacks. Moves one message from its current account into a *different* account's
+// folder (default: that account's INBOX). Physically APPENDs to the destination
+// and deletes from the source (imapManager.moveMessageAcrossAccounts), then
+// reconciles the local index for both accounts.
+router.post('/messages/:id/move-to-account', async (req, res) => {
+  const { id } = req.params;
+  const { toAccountId, toFolder } = req.body || {};
+  if (!areValidUUIDs([id, toAccountId])) {
+    return res.status(400).json({ error: 'Valid message id and toAccountId required' });
+  }
+  if (toFolder != null && !isValidFolderName(toFolder)) {
+    return res.status(400).json({ error: 'Invalid destination folder' });
+  }
+
+  let guarded = null;
+  try {
+    // Source message (must belong to the caller).
+    const msgResult = await query(
+      `SELECT m.*, a.user_id FROM messages m
+       JOIN email_accounts a ON m.account_id = a.id
+       WHERE m.id = $1 AND a.user_id = $2`,
+      [id, req.session.userId]
+    );
+    if (!msgResult.rows.length) return res.status(404).json({ error: 'Message not found' });
+    const message = msgResult.rows[0];
+
+    // Destination account (must belong to the caller, and be a different account).
+    if (toAccountId === message.account_id) {
+      return res.status(400).json({ error: 'Destination is the same account — use a normal move' });
+    }
+    const destResult = await query(
+      'SELECT * FROM email_accounts WHERE id = $1 AND user_id = $2',
+      [toAccountId, req.session.userId]
+    );
+    if (!destResult.rows.length) return res.status(404).json({ error: 'Destination account not found' });
+    const destAccount = destResult.rows[0];
+
+    // Resolve destination folder: caller-specified, else the destination INBOX.
+    const destFolder = toFolder || 'INBOX';
+    const folderCheck = await query(
+      'SELECT 1 FROM folders WHERE account_id = $1 AND path = $2',
+      [destAccount.id, destFolder]
+    );
+    if (!folderCheck.rows.length) {
+      return res.status(400).json({ error: `Folder "${destFolder}" not found on the destination account` });
+    }
+
+    const srcResult = await query('SELECT * FROM email_accounts WHERE id = $1', [message.account_id]);
+    const sourceAccount = srcResult.rows[0];
+
+    // Guard the source UID so a concurrent reconcileDeletes can't race the delete.
+    imapManager._guardMoveUid(sourceAccount.id, message.folder, message.uid);
+    guarded = { accountId: sourceAccount.id, folder: message.folder, uid: message.uid };
+
+    let newUid;
+    try {
+      ({ newUid } = await imapManager.moveMessageAcrossAccounts(
+        sourceAccount, message.uid, message.folder, destAccount, destFolder
+      ));
+    } catch (err) {
+      console.error('cross-account move failed:', err.message);
+      return res.status(502).json({ error: `Cross-account move failed: ${err.message}` });
+    }
+
+    // Reconcile the local index. On UIDPLUS we know the destination UID, so remove
+    // the source row and re-insert at the destination in one atomic statement,
+    // carrying the display metadata over. Without it, delete the source row and
+    // let the destination sync (below) ingest the appended copy.
+    if (newUid != null) {
+      await query(`
+        WITH deleted AS (
+          DELETE FROM messages WHERE id = $1 RETURNING *
+        )
+        INSERT INTO messages (
+          account_id, uid, folder, message_id, subject,
+          from_name, from_email, to_addresses, cc_addresses,
+          reply_to, in_reply_to, date, snippet, is_read, is_starred,
+          has_attachments, flags, body_html, body_text, attachments,
+          thread_references, thread_id, is_bulk
+        )
+        SELECT
+          $2, $3, $4, message_id, subject,
+          from_name, from_email, to_addresses, cc_addresses,
+          reply_to, in_reply_to, date, snippet, is_read, is_starred,
+          has_attachments, flags, body_html, body_text, attachments,
+          thread_references, thread_id, is_bulk
+        FROM deleted
+        ON CONFLICT (account_id, uid, folder) DO NOTHING
+      `, [id, destAccount.id, newUid, destFolder]);
+    } else {
+      await query('DELETE FROM messages WHERE id = $1', [id]);
+    }
+    // Always pull the destination folder to reconcile authoritative UID/flags.
+    imapManager.syncFolderOnDemand(destAccount, destFolder)
+      .catch(err => console.warn('post cross-account move destination sync failed:', err.message));
+
+    // Adjust cached folder counts on both accounts.
+    const wasUnread = !message.is_read ? 1 : 0;
+    adjustFolderCounts(sourceAccount.id, message.folder, -1, -wasUnread);
+    adjustFolderCounts(destAccount.id, destFolder, 1, wasUnread);
+
+    // Refresh both accounts' affected folders in connected clients.
+    imapManager.broadcast({ type: 'folder_updated', folder: message.folder, accountId: sourceAccount.id }, req.session.userId);
+    imapManager.broadcast({ type: 'folder_updated', folder: destFolder, accountId: destAccount.id }, req.session.userId);
+
+    emitGtdSectionsRefresh([message], req.session.userId);
+
+    res.json({ ok: true, newUid: newUid ?? null, toAccountId: destAccount.id, toFolder: destFolder });
+  } catch (err) {
+    console.error('move-to-account error:', err);
+    res.status(500).json({ error: 'Failed to move message to account' });
+  } finally {
+    if (guarded) imapManager._unguardMoveUid(guarded.accountId, guarded.folder, guarded.uid);
+  }
+});
+
 // Bulk archive — moves messages to the archive folder for each account
 router.post('/messages/bulk-archive', async (req, res) => {
   const { ids } = req.body;

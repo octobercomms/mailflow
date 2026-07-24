@@ -171,6 +171,10 @@ export const api = {
   bulkDelete: (ids) => request('POST', '/mail/messages/bulk-delete', { ids }),
   bulkMove: (ids, folder) => request('POST', '/mail/messages/bulk-move', { ids, folder }),
   bulkArchive: (ids) => request('POST', '/mail/messages/bulk-archive', { ids }),
+  // Cross-account move — relocate one message into a different account's folder
+  // (default: that account's INBOX). Airmail-style move between mailboxes.
+  moveToAccount: (id, toAccountId, toFolder) =>
+    request('POST', `/mail/messages/${id}/move-to-account`, { toAccountId, toFolder }),
   getUnreadCounts: () => request('GET', '/mail/unread-counts'),
 
   // Antispam (v0.1) — manual user feedback.

@@ -1,11 +1,11 @@
 {
-  "name": "MailFlow",
-  "short_name": "MailFlow",
-  "description": "Your unified inbox",
+  "name": "OC Mail",
+  "short_name": "OC Mail",
+  "description": "October's unified inbox",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f11",
-  "theme_color": "#7c6af7",
+  "background_color": "#ffffff",
+  "theme_color": "#e7cd41",
   "orientation": "portrait-primary",
   "protocol_handlers": [
     { "protocol": "mailto", "url": "/?mailto=%s" }
@@ -15,7 +15,7 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "/icon-384.png",

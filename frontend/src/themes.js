@@ -1,4 +1,29 @@
 export const THEMES = {
+  october: {
+    label: 'October',
+    description: 'October brand — light & gold',
+    preview: ['#ffffff', '#f5f4ef', '#e7cd41', '#000000'],
+    vars: {
+      '--bg-primary': '#ffffff',
+      '--bg-secondary': '#ffffff',
+      '--bg-tertiary': '#f5f4ef',
+      '--bg-elevated': '#ffffff',
+      '--bg-hover': '#f0eee6',
+      '--border': '#e2e0d6',
+      '--border-subtle': '#eeece4',
+      '--text-primary': '#000000',
+      '--text-secondary': '#55524a',
+      '--text-tertiary': '#8a877d',
+      '--accent': '#e7cd41',
+      '--accent-text': '#1a1a1a',
+      '--accent-dim': '#f7edb5',
+      '--accent-glow': 'rgba(231,205,65,0.22)',
+      '--green': '#2f9e44',
+      '--red': '#e03131',
+      '--amber': '#d9a520',
+    }
+  },
+
   dark: {
     label: 'Dark',
     description: 'Default dark theme',
@@ -549,10 +574,9 @@ function darken(hex, t) {
 }
 
 function buildFaviconSvg(accent, count = 0) {
-  const light = lighten(accent, 0.25);
-  const dark  = darken(accent, 0.30);
-  const [dr, dg, db] = hexToRgb(dark);
-
+  // October mail mark: black envelope outline + accent (gold) asterisk. The
+  // asterisk tracks the effective --accent so it matches the app; the envelope
+  // stays October ink-black. Keeps the unread badge (top-right).
   let badge = '';
   if (count > 0) {
     const label = count > 99 ? '99+' : String(count);
@@ -565,28 +589,14 @@ function buildFaviconSvg(accent, count = 0) {
             `fill="white" font-family="system-ui,sans-serif" font-weight="800" font-size="${fs}">${label}</text>`;
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${light}"/>
-      <stop offset="100%" stop-color="${dark}"/>
-    </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.14)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </linearGradient>
-    <clipPath id="ec">
-      <rect x="5" y="10.5" width="22" height="15" rx="2.5"/>
-    </clipPath>
-  </defs>
-  <rect width="32" height="32" rx="7.5" fill="url(#bg)"/>
-  <rect width="32" height="16" rx="7.5" fill="url(#shine)"/>
-  <rect x="5" y="11.5" width="22" height="15" rx="2.5" fill="rgba(0,0,0,0.18)"/>
-  <rect x="5" y="10.5" width="22" height="15" rx="2.5" fill="white"/>
-  <path d="M5,10.5 L16,20.5 L27,10.5 Z" fill="rgba(${dr},${dg},${db},0.10)" clip-path="url(#ec)"/>
-  <path d="M5,10.5 L16,20.5 L27,10.5" fill="none" stroke="rgba(${dr},${dg},${db},0.38)" stroke-width="1.4" stroke-linejoin="round" clip-path="url(#ec)"/>
-  <line x1="5" y1="25.5" x2="13" y2="20" stroke="rgba(${dr},${dg},${db},0.16)" stroke-width="1.1"/>
-  <line x1="27" y1="25.5" x2="19" y2="20" stroke="rgba(${dr},${dg},${db},0.16)" stroke-width="1.1"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
+  <rect x="2.5" y="8.5" width="19" height="15" rx="2.5" stroke="#231f20" stroke-width="2.2"/>
+  <path d="M3.5 10 L12 16.5 L20.5 10" stroke="#231f20" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="${accent}" stroke-width="2.6" stroke-linecap="round">
+    <line x1="25.5" y1="18.5" x2="25.5" y2="29.5"/>
+    <line x1="20.7" y1="21.25" x2="30.3" y2="26.75"/>
+    <line x1="30.3" y1="21.25" x2="20.7" y2="26.75"/>
+  </g>
   ${badge}
 </svg>`;
 }
@@ -649,10 +659,9 @@ export function applyCustomCss(css) {
 // login screen and the very first visit. Honors the OS light/dark setting and
 // falls back to dark. matchMedia is guarded so a missing API never throws.
 export function getInitialTheme() {
-  try {
-    if (window.matchMedia?.('(prefers-color-scheme: light)').matches) return 'light';
-  } catch { /* matchMedia unavailable — fall through to dark */ }
-  return 'dark';
+  // October brand is the default look — light with a gold accent — regardless
+  // of the OS setting, so first-visit and the login screen are on-brand.
+  return 'october';
 }
 
 // ── Effective accent (theme value, or a custom-CSS override of --accent) ───────
@@ -660,7 +669,7 @@ export function getInitialTheme() {
 // The accent actually in effect. A custom-CSS override of --accent wins over the
 // theme's declared value, so JS-driven chrome (favicon, PWA theme-color, the logo
 // mark) reads the *computed* value to match what var(--accent) resolves to in CSS.
-export function getEffectiveAccent(fallback = '#7c6af7') {
+export function getEffectiveAccent(fallback = '#e7cd41') {
   try {
     const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     return v || fallback;

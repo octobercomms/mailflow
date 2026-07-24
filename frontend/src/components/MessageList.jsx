@@ -1937,6 +1937,44 @@ export default function MessageList() {
         });
         break;
       }
+      case 'moveToAccount': {
+        // Cross-account move: relocate this single message into another account's
+        // folder (default INBOX). Threads can span accounts, so we intentionally
+        // move only the right-clicked message, not the whole thread. Optimistic
+        // removal with rollback on failure — no undo timer, since undoing means
+        // physically moving the message back across servers.
+        const { toAccountId, toFolder } = data || {};
+        if (!toAccountId || toAccountId === message.account_id) break;
+        const moved = message;
+        const destAccount = accounts.find(a => a.id === toAccountId);
+        const destName = destAccount?.email || destAccount?.name || 'account';
+        removeMessage(moved.id);
+        if (!moved.is_read) decrementUnread(moved.account_id);
+        if (selectedIds.has(moved.id)) {
+          const next = new Set(selectedIds);
+          next.delete(moved.id);
+          setSelectedIds(next);
+          if (next.size === 0) setSelectionModeActive(false);
+        }
+        try {
+          await api.moveToAccount(moved.id, toAccountId, toFolder);
+          addNotification({
+            title: t('message.movedToAccount.title', { defaultValue: 'Moved to {{account}}', account: destName }),
+            body: moved.subject || t('common.noSubject'),
+          });
+          // Both accounts' unread badges changed — refresh authoritative counts.
+          api.getUnreadCounts().then(c => useStore.getState().setUnreadCounts(c)).catch(() => {});
+        } catch (err) {
+          console.error('Cross-account move failed:', err.message);
+          useStore.getState().restoreMessages([moved]);
+          if (!moved.is_read) incrementUnread(moved.account_id);
+          addNotification({
+            title: t('message.movedToAccount.failTitle', { defaultValue: 'Move failed' }),
+            body: t('message.movedToAccount.failBody', { defaultValue: "Couldn't move the message to that account." }),
+          });
+        }
+        break;
+      }
       case 'snooze': {
         const snoozedMsg = message;
         const untilIso = data;

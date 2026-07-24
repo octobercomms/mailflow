@@ -4286,6 +4286,48 @@ export class ImapManager {
     return newUid;
   }
 
+  // Move a message BETWEEN two different accounts (the Airmail-style cross-account
+  // move MailFlow's single-account moveMessage can't do). IMAP has no server-side
+  // move across mailboxes on different servers, so we do it in three ordered steps
+  // on independent connections:
+  //   1. fetch the raw RFC822 source (+ flags) from the source mailbox,
+  //   2. APPEND it into the destination account's target folder,
+  //   3. only after a *confirmed* append, delete the original from the source.
+  // Deleting last means a failure anywhere leaves the message safely in the source
+  // (at worst a duplicate), never lost. Returns the destination UID when the server
+  // supports UIDPLUS (else null — the caller resyncs the destination folder).
+  async moveMessageAcrossAccounts(sourceAccount, uid, sourceFolder, destAccount, destFolder) {
+    // 1. Pull the raw source + flags from the source mailbox.
+    let raw = null;
+    let flags = ['\\Seen'];
+    await withFreshClient(sourceAccount, async (client) => {
+      const lock = await client.getMailboxLock(sourceFolder);
+      try {
+        for await (const msg of client.fetch(String(uid), { uid: true, source: true, flags: true }, { uid: true })) {
+          if (msg.source) raw = Buffer.isBuffer(msg.source) ? msg.source : Buffer.from(String(msg.source));
+          // Preserve the user-visible flags the destination can honour; \Recent is
+          // server-managed and must not be re-applied on APPEND.
+          if (msg.flags && msg.flags.size) {
+            const kept = [...msg.flags].filter(f => f.toLowerCase() !== '\\recent');
+            if (kept.length) flags = kept;
+          }
+        }
+      } finally {
+        lock.release();
+      }
+    });
+    if (!raw) throw new Error(`cross-account move: source message uid=${uid} not found in ${sourceFolder}`);
+
+    // 2. APPEND into the destination account's target folder (fresh connection).
+    const { uid: newUid } = await this.appendToFolder(destAccount, destFolder, raw, flags);
+
+    // 3. Original only leaves the source once the destination copy is confirmed.
+    await this.permanentDeleteMessage(sourceAccount, uid, sourceFolder);
+
+    console.log(`Cross-account move: ${logAccount(sourceAccount)}/${sourceFolder} uid=${uid} -> ${logAccount(destAccount)}/${destFolder} uid=${newUid}`);
+    return { newUid };
+  }
+
   async permanentDeleteMessage(account, uid, folder) {
     await withFreshClient(account, async (client) => {
       const lock = await client.getMailboxLock(folder);

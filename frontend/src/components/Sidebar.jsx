@@ -826,25 +826,7 @@ export default function Sidebar() {
       }}>
         {!sidebarCollapsed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <LogoMark size={24} />
-            <span style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
-              <span style={{
-                fontFamily: "'Syne', sans-serif",
-                fontSize: 17, fontWeight: 700,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em', whiteSpace: 'nowrap',
-              }}>
-                Mail
-              </span>
-              <span style={{
-                fontFamily: "'Syne', sans-serif",
-                fontSize: 17, fontWeight: 600,
-                color: 'var(--accent)',
-                letterSpacing: '-0.02em', whiteSpace: 'nowrap',
-              }}>
-                Flow
-              </span>
-            </span>
+            <LogoMark size={40} />
           </div>
         )}
         <button
