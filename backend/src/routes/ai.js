@@ -292,7 +292,6 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
           { role: 'user', content: user },
         ],
         stream: false,
-        temperature: 0.2,
       }),
       signal: AbortSignal.timeout(120000),
     });
