@@ -233,7 +233,7 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
 
   // Account must belong to the caller.
   const acct = await query(
-    'SELECT id, email FROM email_accounts WHERE id = $1 AND user_id = $2',
+    'SELECT id, email_address AS email FROM email_accounts WHERE id = $1 AND user_id = $2',
     [accountId, req.session.userId]
   );
   if (!acct.rows.length) return res.status(404).json({ error: 'Account not found' });
