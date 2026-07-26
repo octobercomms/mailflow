@@ -241,7 +241,7 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
   // Pull the folder's messages (newest first, capped). The local index already
   // holds subject/sender/snippet, so no IMAP round-trip is needed.
   const msgResult = await query(
-    `SELECT id, subject, from_name, from_email, snippet, date, is_read
+    `SELECT id, subject, from_name, from_email, snippet, body_text, date, is_read
        FROM messages
       WHERE account_id = $1 AND folder = $2
       ORDER BY date DESC
@@ -255,25 +255,33 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
   }
 
   // Build the prompt. Emails are numbered [1..N]; the model refers back by index.
+  // Feed the message body (not just the snippet) so the model can extract the actual
+  // ask — what is wanted, from whom, and any deadline — rather than a thin one-liner.
   const clip = (s, n) => (s || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const lines = emails.map((m, i) => {
     const from = clip(m.from_name || m.from_email || 'unknown', 80);
     const subject = clip(m.subject, 160) || '(no subject)';
     const when = m.date ? new Date(m.date).toISOString().slice(0, 10) : '';
-    const snippet = clip(m.snippet, 240);
-    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}\nSnippet: ${snippet}`;
+    const bodyText = clip(m.body_text || m.snippet, 900);
+    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}\n${bodyText}`;
   }).join('\n\n');
 
-  const system = 'You turn a folder of emails into a concise, prioritized to-do list. ' +
-    'Only include emails that genuinely require an action FROM THE USER (a reply, a decision, ' +
-    'a task, a follow-up). Skip newsletters, receipts, notifications, and anything already handled. ' +
-    'Merge related emails into a single task. Keep each task short, specific, and action-first ' +
-    '(start with a verb). Do not invent tasks that are not supported by an email.';
+  const system = 'You turn a folder of emails into a grouped, prioritized to-do digest for a busy agency owner. ' +
+    'Only include emails that genuinely require an action FROM THE USER (a reply, a decision, a task, a follow-up). ' +
+    'Skip newsletters, receipts, automated notifications, and anything already handled. ' +
+    'Merge related emails about the same thing into one task. ' +
+    'Group tasks by the CLIENT or PROJECT they concern (infer it from the sender domain, names, and content — ' +
+    'e.g. a company or brand name); use "General" only when nothing more specific fits. ' +
+    'For each task write: a short action-first title (start with a verb), and a "detail" sentence that captures ' +
+    'the actual substance — what specifically is being asked, by whom, and any deadline or number of items — ' +
+    'so the user knows what it involves without opening the email. ' +
+    'Do not invent anything not supported by an email.';
   const user = `Here are the emails in the "${folder}" folder for ${acct.rows[0].email} (newest first):\n\n` +
     `${lines}\n\n` +
     'Return ONLY valid JSON, no prose, in this exact shape:\n' +
-    '{"tasks":[{"emailIndex":<number>,"title":"<short action>","priority":"high|medium|low"}]}\n' +
-    'emailIndex is the [n] of the email the task comes from. Order tasks high → low priority. ' +
+    '{"tasks":[{"emailIndex":<number>,"group":"<client or project name>","title":"<short action, verb-first>",' +
+    '"detail":"<one sentence: the specific ask, who from, any deadline>","priority":"high|medium|low"}]}\n' +
+    'emailIndex is the [n] of the email the task comes from. Order tasks high → low priority within the whole list. ' +
     'If nothing needs action, return {"tasks":[]}.';
 
   const apiKey = cfg.apiKey ? decrypt(cfg.apiKey) : null;
@@ -332,15 +340,17 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
       const priority = ['high', 'medium', 'low'].includes(t?.priority) ? t.priority : 'medium';
       const title = clip(t?.title, 200);
       if (!title) return null;
+      const group = clip(t?.group, 80) || 'General';
+      const detail = clip(t?.detail, 400);
       return src
         ? {
-            title, priority,
+            title, detail, group, priority,
             emailId: src.id,
             subject: src.subject || '(no subject)',
             from: src.from_name || src.from_email || 'unknown',
             date: src.date,
           }
-        : { title, priority, emailId: null };
+        : { title, detail, group, priority, emailId: null };
     })
     .filter(Boolean)
     .sort((a, b) => rank[a.priority] - rank[b.priority]);
