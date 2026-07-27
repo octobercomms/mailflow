@@ -392,8 +392,14 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
     'if an email addressed to the user still expects ANY response, including just a short acknowledgement, a ' +
     'courtesy reply, or a sign-off nod (e.g. a project closure/hand-off, an FYI that invites a reply), include it ' +
     'as a LOW priority task ("Acknowledge …" / "Reply to …"). When in doubt, include it as low rather than drop it. ' +
-    'Do not collapse unrelated actions together just to shorten the list — merge only when two emails are ' +
-    'genuinely the same request (e.g. the same thread). ' +
+    'Do not collapse unrelated actions together just to shorten the list. NEVER merge two emails just because ' +
+    'they share a subject line — a shared subject is NOT enough. Merge only when emails are genuinely the same ' +
+    'ongoing conversation: the same people AND continuous back-and-forth. Emails from different senders, different ' +
+    'clients, or far apart in time (e.g. one from 2016 and one from this year) are ALWAYS separate tasks — or ' +
+    'omit the stale one entirely — even if the subject is identical. Judge each email by its sender, date, and ' +
+    'body, not its subject. ' +
+    'Emails more than about a year old are very likely stale leftovers — include one only if it clearly describes ' +
+    'an action that is still genuinely open today; otherwise skip it. ' +
     'When a KNOWN CLIENTS list is provided, you MUST group strictly by those exact client names — never invent ' +
     'per-person or per-project group labels. When no list is provided, infer the client/project from the sender ' +
     'domain, names, and content, and use "General" only when nothing more specific fits. ' +
