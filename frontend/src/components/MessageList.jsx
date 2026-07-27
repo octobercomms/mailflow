@@ -181,6 +181,9 @@ export default function MessageList() {
   const pendingDeleteTimers = useRef(new Map()); // id/thread key -> pending delete metadata
   const recentMessageOpenUntilRef = useRef(0);
   const deferredRefreshTimerRef = useRef(null);
+  // Last time we kicked an on-open IMAP sync per "accountId:folder", so opening a
+  // non-INBOX folder refreshes it (the 60s tick only syncs INBOX) without hammering.
+  const folderSyncedAtRef = useRef(new Map());
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -343,13 +346,24 @@ export default function MessageList() {
             setMessagesOffset(data.messages.length);
             setHasMoreMessages(data.messages.length < data.total);
 
-            // If a specific non-INBOX folder opened empty, trigger an on-demand IMAP sync.
-            // The backend will broadcast sync_complete → mailflow:refresh once done.
-            if (data.messages.length === 0 && selectedAccountId && selectedFolder !== 'INBOX') {
-              setFolderSyncing(true);
-              api.syncFolder(selectedAccountId, selectedFolder)
-                .catch(err => console.error('syncFolder failed:', err.message))
-                .finally(() => { if (!cancelled) setFolderSyncing(false); });
+            // Refresh a specific non-INBOX folder on open via an on-demand IMAP sync, so
+            // newly-labelled/moved mail appears (the 60s tick only syncs INBOX — a Gmail
+            // label folder would otherwise never pull new arrivals here). Empty folders
+            // sync immediately; non-empty ones are throttled so flicking between folders
+            // doesn't hammer IMAP. The backend broadcasts sync_complete → mailflow:refresh.
+            if (selectedAccountId && selectedFolder !== 'INBOX') {
+              const key = `${selectedAccountId}:${selectedFolder}`;
+              const now = Date.now();
+              const last = folderSyncedAtRef.current.get(key) || 0;
+              if (data.messages.length === 0 || now - last > 20000) {
+                folderSyncedAtRef.current.set(key, now);
+                setFolderSyncing(true);
+                api.syncFolder(selectedAccountId, selectedFolder)
+                  .catch(err => console.error('syncFolder failed:', err.message))
+                  .finally(() => { if (!cancelled) setFolderSyncing(false); });
+              } else {
+                setFolderSyncing(false);
+              }
             } else {
               setFolderSyncing(false);
             }
@@ -593,6 +607,12 @@ export default function MessageList() {
     setSyncing(true);
     try {
       await api.syncNow(selectedAccountId || undefined);
+      // syncNow only covers INBOX; if the user is looking at a specific non-INBOX
+      // folder, also pull that folder so "Sync now" refreshes what they're viewing.
+      if (selectedAccountId && selectedFolder && selectedFolder !== 'INBOX') {
+        folderSyncedAtRef.current.set(`${selectedAccountId}:${selectedFolder}`, Date.now());
+        api.syncFolder(selectedAccountId, selectedFolder).catch(err => console.error('syncFolder failed:', err.message));
+      }
       // The server will send sync_complete via WebSocket when done, which triggers
       // mailflow:refresh (list reload) and mailflow:sync_done (spinner off).
       // Safety fallback: stop spinner after 15s in case WS event never arrives.
