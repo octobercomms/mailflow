@@ -3061,6 +3061,11 @@ export class ImapManager {
       // refreshed once at completion when the account is gtd_enabled — the tick's fingerprint
       // can't see rows backfill already wrote (before==after). See emitGtdSectionsRefreshIfEnabled.
       let backfilledRows = 0;
+      // UIDs a truncated/throttled FETCH silently skipped get re-queued to the end of
+      // missingUids ONCE (tracked here) so a single interrupted pass can't strand a
+      // message. Bounded: anything still missing after its retry waits for the next
+      // full backfill rather than looping forever.
+      const requeuedUids = new Set();
 
       while (i < missingUids.length) {
         // Stop immediately if the account was deleted while backfilling
@@ -3083,6 +3088,9 @@ export class ImapManager {
         const batch = missingUids.slice(i, i + cfg.batchSize);
         // Comma-separated UID list — e.g. "1234,5678,9012"
         const uidSet = batch.join(',');
+        // Track which of this batch's UIDs the FETCH actually returned, so we can
+        // re-queue any the server silently dropped (Gmail truncates under load).
+        const fetchedUids = new Set();
 
         try {
           const lock = await bfClient.getMailboxLock(folder);
@@ -3111,6 +3119,7 @@ export class ImapManager {
                   console.warn(`Backfill skipped: IMAP FETCH returned no UID for ${account.email}/${folder}`);
                   continue;
                 }
+                fetchedUids.add(String(parsed.uid));
                 let safeHtml = null, bodyText = null, atts = [];
 
                 if (cfg.fetchBody) {
@@ -3233,6 +3242,18 @@ export class ImapManager {
           i += batch.length;
           batchesOnConn++;
           consecutiveErrors = 0;
+
+          // Re-queue UIDs this FETCH silently skipped (Gmail can return fewer messages
+          // than requested under load). Append each to the end of missingUids exactly
+          // once so the existing insert path retries it; still-missing UIDs are left for
+          // the next full backfill rather than looping.
+          for (const u of batch) {
+            const key = String(u);
+            if (!fetchedUids.has(key) && !requeuedUids.has(key)) {
+              requeuedUids.add(key);
+              missingUids.push(u);
+            }
+          }
 
           // Log progress every 10 batches to avoid log spam
           if (batchesOnConn % 10 === 1 || i >= missingUids.length) {
