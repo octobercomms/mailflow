@@ -1691,6 +1691,15 @@ export class ImapManager {
     let client;
     try {
       client = new ImapFlow(makeClientCfg(account, resolved, { enableIdle: providerProfile(account).usesIdle !== false, policy }));
+      // Attach the 'error' handler BEFORE connect(). If connect() rejects (e.g. an auth
+      // 'Command failed'), ImapFlow can still emit an async 'error' on the dead socket a
+      // tick later. With no listener attached yet, Node throws on the unhandled 'error'
+      // event and crashes the ENTIRE backend — killing every other account's sync and
+      // forcing a full reconnect/backfill storm on restart. Attaching it here, before the
+      // connect can reject, is what keeps one bad account from taking down the process.
+      client.on('error', (err) => {
+        console.error(`IMAP error for ${logAccount(account)}:`, err.message);
+      });
       // Race the connect against a 30-second timeout.
       // client.connect() has no built-in connection timeout — on slow or unresponsive
       // IMAP servers (e.g. purelymail.com during cold starts) it can hang indefinitely,
@@ -1711,12 +1720,8 @@ export class ImapManager {
           console.log(`IMAP connection closed for ${logAccount(account)}`);
         }
       });
-      // Prevent unhandled 'error' events from crashing the Node.js process.
-      // ImapFlow emits 'error' on socket timeouts and other transport-level failures;
-      // without this listener Node throws on unhandled EventEmitter errors.
-      client.on('error', (err) => {
-        console.error(`IMAP error for ${logAccount(account)}:`, err.message);
-      });
+      // ('error' handler already attached above, before connect(), so transport-level
+      // failures never surface as an unhandled EventEmitter error.)
       this._attachIdleListeners(client, account);
       this.connections.set(account.id, client);
       await query('UPDATE email_accounts SET sync_error = NULL WHERE id = $1', [account.id]);
@@ -1780,6 +1785,9 @@ export class ImapManager {
     } catch (err) {
       const detail = extractImapError(err);
       console.error(`Failed to connect ${logAccount(account)}:`, detail);
+      // Tear down the half-open client so its socket doesn't linger and re-emit. Safe now
+      // that the 'error' handler is attached before connect() — close() can emit freely.
+      try { client?.close?.(); } catch { /* already down */ }
       // On a connection-refusal/throttle, back this account off with growing delay so we
       // stop hammering a provider that's at its limit. Other errors don't set a cooldown —
       // the health check retries them normally.
@@ -1919,6 +1927,11 @@ export class ImapManager {
               const freshAccount = await ensureFreshToken(accountResult.rows[0]);
               const { resolved, policy } = await resolveAccountHost(freshAccount);
               pendingClient = new ImapFlow(makeClientCfg(freshAccount, resolved, { enableIdle: providerProfile(freshAccount).usesIdle !== false, policy }));
+              // Attach 'error' before connect() so a rejected connect can't leave an
+              // unhandled 'error' event to crash the process (see connectAccount).
+              pendingClient.on('error', (err) => {
+                console.error(`IMAP error for ${logAccount(freshAccount)}:`, err.message);
+              });
               await pendingClient.connect();
               return { client: pendingClient, account: freshAccount };
             })(),
@@ -1934,9 +1947,7 @@ export class ImapManager {
               this.connections.delete(account.id);
             }
           });
-          activeClient.on('error', (err) => {
-            console.error(`IMAP error for ${logAccount(syncAccount)}:`, err.message);
-          });
+          // ('error' handler already attached before connect() above.)
           this._attachIdleListeners(activeClient, syncAccount);
           this.connections.set(account.id, activeClient);
           // Mirror connectAccount's success cleanup: clear the refusal backoff so the next
