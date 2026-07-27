@@ -1226,6 +1226,7 @@ export class ImapManager {
     this.snippetBackoff = new Map();        // accountId -> { failures, until } circuit breaker
     this.lastUserActivity = new Map();      // accountId -> ms timestamp of last live body fetch
     this.syncTickCount = new Map(); // accountId -> successful sync ticks (for reconcile scheduling)
+    this.lastReconcileAt = new Map(); // accountId -> ms timestamp of last reconcileDeletes run (wall-clock cadence, survives reconnects)
     this.lastSyncOkAt = new Map(); // accountId -> ms timestamp of last successful sync tick (staleness detection)
     this._flagDebounceTimers   = new Map(); // accountId -> debounce timer for flag-change syncs
     this._expungeDebounceTimers = new Map(); // accountId -> debounce timer for expunge reconciles
@@ -1771,6 +1772,12 @@ export class ImapManager {
         logger.debug(`Backfill deferred on connect for ${logAccount(account)} — account already has cached mail`);
       }
 
+      // Reconcile server-side deletes shortly after connecting so archived/unlabelled mail
+      // is swept promptly — the connect path never reconciled before, which (with the
+      // reconnect-resetting tick counter) let stale rows linger indefinitely. Gated by
+      // _maybeReconcile so a reconnect storm doesn't repeat it.
+      this._maybeReconcile(account, 'connect');
+
       const intervalMs = this.userSyncIntervalMs.get(account.user_id) || 60000;
       this._startSyncInterval(account, intervalMs);
       // Only gtd_enabled accounts arm a GTD tick — a non-GTD account starts no extra
@@ -2038,15 +2045,12 @@ export class ImapManager {
         });
       }
 
-      // Reconcile remote deletes every 10 successful ticks (~10 min at 60 s interval).
-      // Uses a pooled connection so it never blocks the sync client.
-      if (ticks % 10 === 0) {
-        setImmediate(() => {
-          this.reconcileDeletes(syncAccount).catch(err =>
-            console.error(`Reconcile error for ${logAccount(syncAccount)}:`, err.message)
-          );
-        });
-      }
+      // Reconcile remote deletes on a wall-clock cadence (~10 min). NOT tied to the
+      // tick counter: that counter resets on every reconnect, and on a busy multi-account
+      // box the account reconnects (health check / staleness probe) often enough that it
+      // rarely reached 10 uninterrupted ticks — so reconcile was starved and archived /
+      // unlabelled mail never got swept. The wall-clock gate survives reconnects.
+      this._maybeReconcile(syncAccount, 'tick');
     } catch (err) {
       const detail = extractImapError(err);
       console.error(`Sync error for ${logAccount(account)}:`, detail);
@@ -4931,7 +4935,24 @@ export class ImapManager {
   // client). Phase 1: collect all server UID sets via one pool connection (IMAP-only, no
   // DB writes). Phase 2: diff and delete outside the IMAP connection so a DB error never
   // evicts a healthy pool client.
+  // Wall-clock gate for reconcileDeletes: runs at most once per interval per account,
+  // independent of the reconnect-resettable tick counter. Fire-and-forget.
+  _maybeReconcile(account, reason) {
+    const RECONCILE_INTERVAL_MS = 10 * 60 * 1000;
+    const last = this.lastReconcileAt.get(account.id) || 0;
+    if (Date.now() - last < RECONCILE_INTERVAL_MS) return;
+    this.lastReconcileAt.set(account.id, Date.now());
+    setImmediate(() => {
+      this.reconcileDeletes(account).catch(err =>
+        console.error(`Reconcile error for ${logAccount(account)} (${reason}):`, err.message)
+      );
+    });
+  }
+
   async reconcileDeletes(account) {
+    // Stamp the run time so the wall-clock gate (_maybeReconcile) and the event-driven
+    // expunge trigger share one cadence and don't pile up back-to-back runs.
+    this.lastReconcileAt.set(account.id, Date.now());
     // Captured before the Phase 1 snapshot. Any row inserted or re-synced after this
     // instant (new IDLE mail, a bulk-move reinsert) is NOT in the snapshot yet, so it
     // would look like an orphan. Excluding rows synced at/after the cutoff closes that
