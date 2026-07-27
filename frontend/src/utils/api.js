@@ -319,6 +319,9 @@ export const api = {
   // AI — is a provider configured/enabled, and generate a task list from a folder.
   aiStatus: () => request('GET', '/ai/status'),
   aiTasks: (accountId, folder) => request('POST', '/ai/tasks', { accountId, folder }),
+  // Client legend — the "Client Name: term, term" map used to group the task list.
+  aiTaskLegend: () => request('GET', '/ai/tasks/legend'),
+  aiSetTaskLegend: (legend) => request('PUT', '/ai/tasks/legend', { legend }),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.

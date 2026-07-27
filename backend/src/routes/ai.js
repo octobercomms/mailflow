@@ -216,6 +216,50 @@ router.post('/ai/chat', requireAuth, async (req, res) => {
 // renders, each task carrying the source email id so the UI can open it.
 const AI_TASKS_MAX_EMAILS = 120;
 
+// ── Client legend ─────────────────────────────────────────────────────────────
+// A user-maintained map of "Client Name: term, term, …" (one per line). Terms are
+// domains, people, or brand/project names. They let the task list group by real
+// client even for internal mail that only mentions the client in the body — the
+// legend is fed to the model as the authoritative grouping vocabulary, and any
+// term that matches the sender address/name also tags the email deterministically.
+const CLIENT_LEGEND_MAX = 8000;
+
+function parseLegend(text) {
+  return (text || '')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(line => {
+      const idx = line.indexOf(':');
+      if (idx === -1) return { client: line.trim(), terms: [] };
+      const client = line.slice(0, idx).trim();
+      const terms = line.slice(idx + 1).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      return { client, terms };
+    })
+    .filter(e => e.client);
+}
+
+async function loadLegendText() {
+  const r = await query("SELECT value FROM system_settings WHERE key = 'client_legend'");
+  return r.rows.length ? r.rows[0].value : '';
+}
+
+router.get('/ai/tasks/legend', requireAuth, async (_req, res) => {
+  res.json({ legend: await loadLegendText() });
+});
+
+router.put('/ai/tasks/legend', requireAuth, async (req, res) => {
+  let { legend } = req.body || {};
+  if (typeof legend !== 'string') return res.status(400).json({ error: 'legend must be a string' });
+  legend = legend.slice(0, CLIENT_LEGEND_MAX);
+  await query(
+    `INSERT INTO system_settings (key, value, updated_at) VALUES ('client_legend', $1, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+    [legend]
+  );
+  res.json({ ok: true });
+});
+
 router.post('/ai/tasks', requireAuth, async (req, res) => {
   const { accountId, folder } = req.body || {};
   if (!accountId || !folder) {
@@ -254,6 +298,20 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
     return res.json({ tasks: [], scanned: 0, capped: false });
   }
 
+  // Load the user's client legend (if any). Terms that match the sender address or
+  // name tag the email deterministically; the full legend is also fed to the model
+  // as the grouping vocabulary so content-only mentions (e.g. internal mail about a
+  // client) still file under the right client.
+  const legend = parseLegend(await loadLegendText());
+  const hintFor = (m) => {
+    if (!legend.length) return '';
+    const hay = `${m.from_email || ''} ${m.from_name || ''}`.toLowerCase();
+    for (const { client, terms } of legend) {
+      if (terms.some(term => term && hay.includes(term))) return client;
+    }
+    return '';
+  };
+
   // Build the prompt. Emails are numbered [1..N]; the model refers back by index.
   // Feed the message body (not just the snippet) so the model can extract the actual
   // ask — what is wanted, from whom, and any deadline — rather than a thin one-liner.
@@ -263,20 +321,32 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
     const subject = clip(m.subject, 160) || '(no subject)';
     const when = m.date ? new Date(m.date).toISOString().slice(0, 10) : '';
     const bodyText = clip(m.body_text || m.snippet, 900);
-    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}\n${bodyText}`;
+    const hint = hintFor(m);
+    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}${hint ? ` — CLIENT: ${hint}` : ''}\n${bodyText}`;
   }).join('\n\n');
+
+  const legendBlock = legend.length
+    ? 'KNOWN CLIENTS — group every task under ONE of these EXACT names. Match each email to a client using ' +
+      'the sender, the people named, and the brand/project mentioned in the body (the terms in parentheses are ' +
+      'matching hints; a "CLIENT:" tag on an email is an authoritative match you should trust):\n' +
+      legend.map(e => `- ${e.client}${e.terms.length ? ` (${e.terms.join(', ')})` : ''}`).join('\n') +
+      '\nDo NOT create per-person or per-project groups (e.g. a contact name or a city) — roll those up into the ' +
+      'matching client. If an email genuinely matches no client above, group it under "Other".\n\n'
+    : '';
 
   const system = 'You turn a folder of emails into a grouped, prioritized to-do digest for a busy agency owner. ' +
     'Only include emails that genuinely require an action FROM THE USER (a reply, a decision, a task, a follow-up). ' +
     'Skip newsletters, receipts, automated notifications, and anything already handled. ' +
     'Merge related emails about the same thing into one task. ' +
-    'Group tasks by the CLIENT or PROJECT they concern (infer it from the sender domain, names, and content — ' +
-    'e.g. a company or brand name); use "General" only when nothing more specific fits. ' +
+    'When a KNOWN CLIENTS list is provided, you MUST group strictly by those exact client names — never invent ' +
+    'per-person or per-project group labels. When no list is provided, infer the client/project from the sender ' +
+    'domain, names, and content, and use "General" only when nothing more specific fits. ' +
     'For each task write: a short action-first title (start with a verb), and a "detail" sentence that captures ' +
     'the actual substance — what specifically is being asked, by whom, and any deadline or number of items — ' +
     'so the user knows what it involves without opening the email. ' +
     'Do not invent anything not supported by an email.';
   const user = `Here are the emails in the "${folder}" folder for ${acct.rows[0].email} (newest first):\n\n` +
+    `${legendBlock}` +
     `${lines}\n\n` +
     'Return ONLY valid JSON, no prose, in this exact shape:\n' +
     '{"tasks":[{"emailIndex":<number>,"group":"<client or project name>","title":"<short action, verb-first>",' +
