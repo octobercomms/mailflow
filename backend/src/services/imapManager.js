@@ -865,7 +865,7 @@ function normalizeSubject(subject) {
 // Compute the thread_id for an incoming message.
 // Primary: RFC 5322 References / In-Reply-To header chain.
 // Fallback: subject normalization when headers are absent (e.g. Outlook RE: replies).
-async function computeThreadId(accountId, messageId, inReplyTo, references, subject) {
+async function computeThreadId(accountId, messageId, inReplyTo, references, subject, msgDate) {
   if (!messageId) return null;
 
   const refIds = parseReferences(references);
@@ -897,23 +897,43 @@ async function computeThreadId(accountId, messageId, inReplyTo, references, subj
     return candidates[0] || messageId;
   }
 
-  // No RFC 5322 threading headers — fall back to subject normalization.
-  // Looks for the earliest message in the same account with the same normalized subject
-  // within the past 90 days and joins that thread.
+  // No RFC 5322 threading headers — fall back to subject normalization: join the earliest
+  // message in the same account with the same normalized subject that is temporally NEAR
+  // this one.
+  //
+  // The window is anchored to THIS message's own date (±90 days), NOT NOW(). Anchoring to
+  // NOW() was the bug behind cross-decade threads: an old message backfilled today (its
+  // own date years ago) matched *recent* same-subject mail and joined a thread years newer
+  // — e.g. a 2016 "website" email glued onto a 2026 "WEBSITE" conversation. Bounding to the
+  // message's own date means only a genuine burst of same-subject mail threads together.
   const normalized = normalizeSubject(subject);
   if (normalized) {
-    const subjectRow = await query(
-      `SELECT thread_id FROM messages
-       WHERE account_id = $1
-         AND is_deleted = false
-         AND message_id IS DISTINCT FROM $2
-         AND thread_id IS NOT NULL
-         AND normalized_subject = $3
-         AND date > NOW() - INTERVAL '90 days'
-       ORDER BY date ASC
-       LIMIT 1`,
-      [accountId, messageId, normalized]
-    );
+    const subjectRow = msgDate
+      ? await query(
+          `SELECT thread_id FROM messages
+           WHERE account_id = $1
+             AND is_deleted = false
+             AND message_id IS DISTINCT FROM $2
+             AND thread_id IS NOT NULL
+             AND normalized_subject = $3
+             AND date BETWEEN $4::timestamptz - INTERVAL '90 days'
+                          AND $4::timestamptz + INTERVAL '90 days'
+           ORDER BY date ASC
+           LIMIT 1`,
+          [accountId, messageId, normalized, msgDate]
+        )
+      : await query(
+          `SELECT thread_id FROM messages
+           WHERE account_id = $1
+             AND is_deleted = false
+             AND message_id IS DISTINCT FROM $2
+             AND thread_id IS NOT NULL
+             AND normalized_subject = $3
+             AND date > NOW() - INTERVAL '90 days'
+           ORDER BY date ASC
+           LIMIT 1`,
+          [accountId, messageId, normalized]
+        );
     if (subjectRow.rows.length > 0) return subjectRow.rows[0].thread_id;
   }
 
@@ -2465,7 +2485,7 @@ export class ImapManager {
             const msgId = sanitizeStr(parsed.messageId);
             const inReplyTo = sanitizeStr(parsed.inReplyTo);
             const refs = sanitizeStr(parsed.references);
-            const threadId = await computeThreadId(account.id, msgId, inReplyTo, refs, sanitizeStr(parsed.subject));
+            const threadId = await computeThreadId(account.id, msgId, inReplyTo, refs, sanitizeStr(parsed.subject), safeDate(parsed.date));
 
             // If a row with this message_id already exists for this account at a
             // different (folder, uid), it was moved. Relocate it in-place rather
@@ -3136,7 +3156,7 @@ export class ImapManager {
                 const bfMsgId    = sanitizeStr(parsed.messageId);
                 const bfReplyTo  = sanitizeStr(parsed.inReplyTo);
                 const bfRefs     = sanitizeStr(parsed.references);
-                const bfThreadId = await computeThreadId(account.id, bfMsgId, bfReplyTo, bfRefs, sanitizeStr(parsed.subject));
+                const bfThreadId = await computeThreadId(account.id, bfMsgId, bfReplyTo, bfRefs, sanitizeStr(parsed.subject), safeDate(parsed.date));
 
                 // Skipped for label-based providers (Gmail) — see the sync processMsg relocate
                 // and PROVIDERS.google.labelBased: relocating collapses legitimate multi-label
