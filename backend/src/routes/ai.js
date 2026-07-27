@@ -387,8 +387,12 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
     'Be COMPLETE: go through every email and capture every outstanding action the user still owes — a reply, a ' +
     'decision, a deliverable, a follow-up, a chase. It is better to include a borderline item than to miss a real one. ' +
     'If a single email contains several distinct asks, create a SEPARATE task for each one. ' +
-    'Only skip an email if it is a pure newsletter/receipt/automated notification, or the action is clearly already ' +
-    'done. Do not collapse unrelated actions together just to shorten the list — merge only when two emails are ' +
+    'Only skip an email if it is a pure newsletter/receipt/automated notification, or the user has plainly already ' +
+    'responded/actioned it in a later message. IMPORTANT: the underlying work being finished does NOT mean skip — ' +
+    'if an email addressed to the user still expects ANY response, including just a short acknowledgement, a ' +
+    'courtesy reply, or a sign-off nod (e.g. a project closure/hand-off, an FYI that invites a reply), include it ' +
+    'as a LOW priority task ("Acknowledge …" / "Reply to …"). When in doubt, include it as low rather than drop it. ' +
+    'Do not collapse unrelated actions together just to shorten the list — merge only when two emails are ' +
     'genuinely the same request (e.g. the same thread). ' +
     'When a KNOWN CLIENTS list is provided, you MUST group strictly by those exact client names — never invent ' +
     'per-person or per-project group labels. When no list is provided, infer the client/project from the sender ' +
