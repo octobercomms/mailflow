@@ -271,7 +271,7 @@ export default function TaskListModal({ accountId, folder, folderLabel, onClose,
                   style={{ animation: 'spin 0.8s linear infinite' }}>
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
-                {t('tasks.loading', { defaultValue: 'Claude is reading your emails…' })}
+                {t('tasks.loading', { defaultValue: 'Claude is reading the full emails — the first run can take a minute…' })}
               </div>
             )}
 

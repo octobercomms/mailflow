@@ -4,6 +4,18 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { encrypt, decrypt } from '../services/encryption.js';
 import { validateHost } from '../services/hostValidation.js';
 import { getConnectionPolicy } from '../services/connectionPolicy.js';
+import { imapManager } from '../index.js';
+import { sanitizeEmail } from '../services/emailSanitizer.js';
+import { snippetFromBody } from '../services/messageParser.js';
+
+// Strip a null byte (Postgres text can't hold \0) — mirrors mail.js sanitizeDbText.
+const nz = (s) => (typeof s === 'string' ? s.replace(/\0/g, '') : s);
+// Rough HTML→text for feeding an html-only email to the model (not stored).
+const htmlToText = (html) => String(html || '')
+  .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+  .replace(/\s+/g, ' ').trim();
 
 const router = Router();
 
@@ -275,17 +287,18 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
   if (!cfg.enabled) return res.status(503).json({ error: 'AI features are disabled' });
   if (!cfg.baseUrl || !cfg.model) return res.status(503).json({ error: 'AI provider not fully configured' });
 
-  // Account must belong to the caller.
+  // Account must belong to the caller. Full row — the on-demand body fetch below
+  // needs the IMAP connection details.
   const acct = await query(
-    'SELECT id, email_address AS email FROM email_accounts WHERE id = $1 AND user_id = $2',
+    'SELECT * FROM email_accounts WHERE id = $1 AND user_id = $2',
     [accountId, req.session.userId]
   );
   if (!acct.rows.length) return res.status(404).json({ error: 'Account not found' });
+  const account = acct.rows[0];
 
-  // Pull the folder's messages (newest first, capped). The local index already
-  // holds subject/sender/snippet, so no IMAP round-trip is needed.
+  // Pull the folder's messages (newest first, capped).
   const msgResult = await query(
-    `SELECT id, subject, from_name, from_email, snippet, body_text, date, is_read
+    `SELECT id, uid, subject, from_name, from_email, snippet, body_text, date, is_read
        FROM messages
       WHERE account_id = $1 AND folder = $2
       ORDER BY date DESC
@@ -296,6 +309,42 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
   const emails = msgResult.rows.slice(0, AI_TASKS_MAX_EMAILS);
   if (emails.length === 0) {
     return res.json({ tasks: [], scanned: 0, capped: false });
+  }
+
+  // Fetch real bodies on demand. Gmail is indexed with fetchBody:false, so most
+  // rows only carry a short snippet — feeding that to the model is why the digest
+  // was shallow. Fetch the full body for any email missing one, cache it (so this
+  // is a one-time cost per email and normal reading benefits too), and use it for
+  // the prompt. Bounded concurrency + stop early if the server starts throttling.
+  const needBody = emails.filter(m => !m.body_text && m.uid);
+  if (needBody.length) {
+    imapManager.noteUserActivity(account.id);
+    const CONCURRENCY = 3;
+    const BODY_FETCH_BUDGET_MS = 120000;   // leave room under the 300s proxy ceiling for the AI call
+    const deadline = Date.now() + BODY_FETCH_BUDGET_MS;
+    let throttled = false;
+    for (let i = 0; i < needBody.length && !throttled && Date.now() < deadline; i += CONCURRENCY) {
+      const batch = needBody.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(async (m) => {
+        try {
+          const { html, text, attachments } = await imapManager.fetchMessageBody(account, m.uid, folder);
+          const safeHtml = html ? sanitizeEmail(html) : null;
+          const plain = (text && text.trim()) ? text : (safeHtml ? htmlToText(safeHtml) : '');
+          if (safeHtml || text) {
+            m.body_text = plain || m.snippet;   // in-memory, for the prompt
+            const snip = snippetFromBody(text, safeHtml || html);
+            await query(
+              `UPDATE messages SET body_html = $1, body_text = $2, attachments = $3,
+                   snippet = CASE WHEN $5 != '' THEN $5 ELSE snippet END
+               WHERE id = $4`,
+              [nz(safeHtml), nz(text || ''), JSON.stringify(attachments || []), m.id, nz(snip || '')]
+            );
+          }
+        } catch (err) {
+          if (/THROTTL/i.test(err?.message || '')) throttled = true;
+        }
+      }));
+    }
   }
 
   // Load the user's client legend (if any). Terms that match the sender address or
@@ -320,7 +369,7 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
     const from = clip(m.from_name || m.from_email || 'unknown', 80);
     const subject = clip(m.subject, 160) || '(no subject)';
     const when = m.date ? new Date(m.date).toISOString().slice(0, 10) : '';
-    const bodyText = clip(m.body_text || m.snippet, 900);
+    const bodyText = clip(m.body_text || m.snippet, 2000);
     const hint = hintFor(m);
     return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}${hint ? ` — CLIENT: ${hint}` : ''}\n${bodyText}`;
   }).join('\n\n');
@@ -334,25 +383,32 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
       'matching client. If an email genuinely matches no client above, group it under "Other".\n\n'
     : '';
 
-  const system = 'You turn a folder of emails into a grouped, prioritized to-do digest for a busy agency owner. ' +
-    'Only include emails that genuinely require an action FROM THE USER (a reply, a decision, a task, a follow-up). ' +
-    'Skip newsletters, receipts, automated notifications, and anything already handled. ' +
-    'Merge related emails about the same thing into one task. ' +
+  const system = 'You turn a folder of emails into a thorough, grouped, prioritized to-do digest for a busy agency owner. ' +
+    'Be COMPLETE: go through every email and capture every outstanding action the user still owes — a reply, a ' +
+    'decision, a deliverable, a follow-up, a chase. It is better to include a borderline item than to miss a real one. ' +
+    'If a single email contains several distinct asks, create a SEPARATE task for each one. ' +
+    'Only skip an email if it is a pure newsletter/receipt/automated notification, or the action is clearly already ' +
+    'done. Do not collapse unrelated actions together just to shorten the list — merge only when two emails are ' +
+    'genuinely the same request (e.g. the same thread). ' +
     'When a KNOWN CLIENTS list is provided, you MUST group strictly by those exact client names — never invent ' +
     'per-person or per-project group labels. When no list is provided, infer the client/project from the sender ' +
     'domain, names, and content, and use "General" only when nothing more specific fits. ' +
-    'For each task write: a short action-first title (start with a verb), and a "detail" sentence that captures ' +
-    'the actual substance — what specifically is being asked, by whom, and any deadline or number of items — ' +
-    'so the user knows what it involves without opening the email. ' +
+    'For each task write: a short action-first title (start with a verb), and a "detail" of 1–2 sentences that ' +
+    'captures the real substance — what specifically is being asked, by whom, any deadline, and (crucially) the ' +
+    'concrete sub-items if the email lists several (e.g. "needs sign-off on 4 things: X, Y, Z, and W") — so the ' +
+    'user knows exactly what it involves without opening the email. ' +
+    'Use priority honestly: high = urgent/explicitly deadline-bound or chased, medium = normal, low = nice-to-have. ' +
     'Do not invent anything not supported by an email.';
-  const user = `Here are the emails in the "${folder}" folder for ${acct.rows[0].email} (newest first):\n\n` +
+  const user = `Here are the emails in the "${folder}" folder for ${account.email_address} (newest first). ` +
+    `Full message bodies are included — read them, don't just skim the subject.\n\n` +
     `${legendBlock}` +
     `${lines}\n\n` +
     'Return ONLY valid JSON, no prose, in this exact shape:\n' +
     '{"tasks":[{"emailIndex":<number>,"group":"<client or project name>","title":"<short action, verb-first>",' +
-    '"detail":"<one sentence: the specific ask, who from, any deadline>","priority":"high|medium|low"}]}\n' +
+    '"detail":"<1–2 sentences: the specific ask, who from, any deadline, and the concrete sub-items>",' +
+    '"priority":"high|medium|low"}]}\n' +
     'emailIndex is the [n] of the email the task comes from. Order tasks high → low priority within the whole list. ' +
-    'If nothing needs action, return {"tasks":[]}.';
+    'Aim to reflect every genuinely outstanding action across the folder. If truly nothing needs action, return {"tasks":[]}.';
 
   const apiKey = cfg.apiKey ? decrypt(cfg.apiKey) : null;
   const headers = { 'Content-Type': 'application/json' };
@@ -388,7 +444,7 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
 
   // Parse the JSON the model returned, tolerating ```json fences or surrounding prose.
   let parsed;
-  try {
+  {
     let text = content.trim();
     const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
     if (fence) text = fence[1].trim();
@@ -397,9 +453,20 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
       const end = text.lastIndexOf('}');
       if (start >= 0 && end > start) text = text.slice(start, end + 1);
     }
-    parsed = JSON.parse(text);
-  } catch {
-    return res.status(502).json({ error: 'Could not parse the AI task list' });
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // A long, thorough list can be truncated mid-array by the provider's output
+      // cap, which breaks a strict parse. Salvage every complete {...} task object
+      // so the user still gets a (near-)complete list rather than an error.
+      const objs = text.match(/\{[^{}]*\}/g) || [];
+      const tasksOut = [];
+      for (const o of objs) {
+        try { tasksOut.push(JSON.parse(o)); } catch { /* skip partial */ }
+      }
+      if (tasksOut.length) parsed = { tasks: tasksOut };
+      else return res.status(502).json({ error: 'Could not parse the AI task list' });
+    }
   }
 
   const rank = { high: 0, medium: 1, low: 2 };
