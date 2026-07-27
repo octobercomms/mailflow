@@ -42,6 +42,14 @@ function groupTasks(tasks) {
   return out;
 }
 
+// Deep link that opens the source email/thread in October Mail. Keyed on the stable
+// Message-ID (survives the email being moved) with the row id as a fallback; both
+// resolve via /?m= → /resolve-message, the same scheme the Todoist integration uses.
+function taskLink(t) {
+  const ref = t.messageId || t.emailId;
+  return ref ? `${window.location.origin}/?m=${encodeURIComponent(ref)}` : '';
+}
+
 function toMarkdown(grouped, folderLabel) {
   const lines = [`# Task list${folderLabel ? ` — ${folderLabel}` : ''}`, ''];
   grouped.forEach(g => {
@@ -49,7 +57,9 @@ function toMarkdown(grouped, folderLabel) {
     g.items.forEach(t => {
       const p = PRIORITY[t.priority] || PRIORITY.medium;
       const detail = t.detail ? ` — ${t.detail}` : '';
-      lines.push(`- ${p.md} **${t.title}**${detail}`);
+      const url = taskLink(t);
+      const link = url ? ` — [✉ open email](${url})` : '';
+      lines.push(`- ${p.md} **${t.title}**${detail}${link}`);
     });
     lines.push('');
   });

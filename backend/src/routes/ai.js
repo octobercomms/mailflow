@@ -298,7 +298,7 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
 
   // Pull the folder's messages (newest first, capped).
   const msgResult = await query(
-    `SELECT id, uid, subject, from_name, from_email, snippet, body_text, date, is_read
+    `SELECT id, uid, message_id, subject, from_name, from_email, snippet, body_text, date, is_read
        FROM messages
       WHERE account_id = $1 AND folder = $2
       ORDER BY date DESC
@@ -493,11 +493,12 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
         ? {
             title, detail, group, priority,
             emailId: src.id,
+            messageId: src.message_id || null,
             subject: src.subject || '(no subject)',
             from: src.from_name || src.from_email || 'unknown',
             date: src.date,
           }
-        : { title, detail, group, priority, emailId: null };
+        : { title, detail, group, priority, emailId: null, messageId: null };
     })
     .filter(Boolean)
     .sort((a, b) => rank[a.priority] - rank[b.priority]);
