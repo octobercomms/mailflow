@@ -5002,8 +5002,13 @@ export class ImapManager {
         console.warn(`Reconcile: SEARCH returned ${serverUidSet.size} UIDs but EXISTS=${serverExists} for ${logAccount(account)}/${folder} — incomplete search, skipping delete of ${orphanUids.length}.`);
         continue;
       }
-      if (serverUidSet.size === 0 && dbResult.rows.length > 0) {
-        console.warn(`Reconcile: server returned 0 UIDs for ${logAccount(account)}/${folder} but ${dbResult.rows.length} stored — skipping delete (stale/partial search).`);
+      // A zero-UID search is only suspect when we CAN'T confirm the mailbox is empty.
+      // When EXISTS is known to be 0 the folder genuinely holds nothing (e.g. every
+      // message was archived out of INBOX), so the stored rows are real orphans and must
+      // be removed — otherwise archived/unlabelled mail lingers forever. Only skip when
+      // EXISTS is unavailable (null) and a 0 result would just be a guess.
+      if (serverExists == null && serverUidSet.size === 0 && dbResult.rows.length > 0) {
+        console.warn(`Reconcile: server returned 0 UIDs and no EXISTS for ${logAccount(account)}/${folder} but ${dbResult.rows.length} stored — skipping delete (unverifiable).`);
         continue;
       }
 
