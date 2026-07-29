@@ -28,7 +28,9 @@ function isReady(cfg) {
 // Forward a request to OMI's PR add-on API with the stored key. Returns the parsed
 // JSON body and upstream status so the caller can relay both.
 async function omiFetch(cfg, method, path, { search, body } = {}) {
-  const base = cfg.baseUrl.replace(/\/+$/, '');
+  // Tolerate a base URL that already includes the API path — people naturally paste
+  // the full add-on URL. Strip a trailing /api/pr-addon (or /api) so we never double it.
+  const base = cfg.baseUrl.replace(/\/+$/, '').replace(/\/api(\/pr-addon)?\/?$/i, '').replace(/\/+$/, '');
   const url = `${base}/api/pr-addon${path}${search ? `?${search}` : ''}`;
   const key = decrypt(cfg.apiKey);
   const res = await fetch(url, {
