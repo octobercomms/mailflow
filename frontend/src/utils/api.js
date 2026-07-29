@@ -322,6 +322,13 @@ export const api = {
   // Client legend — the "Client Name: term, term" map used to group the task list.
   aiTaskLegend: () => request('GET', '/ai/tasks/legend'),
   aiSetTaskLegend: (legend) => request('PUT', '/ai/tasks/legend', { legend }),
+  // OMI (October Marketing Intelligence) PR add-on, proxied server-side.
+  omiStatus: () => request('GET', '/omi/status'),
+  omiLookup: (email) => request('GET', `/omi/pr/lookup?email=${encodeURIComponent(email || '')}`),
+  omiAddContact: (payload) => request('POST', '/omi/pr/contacts', payload),
+  omiLogCoverage: (payload) => request('POST', '/omi/pr/editorial-log', payload),
+  omiAdminGet: () => request('GET', '/admin/omi'),
+  omiAdminSave: (config) => request('PATCH', '/admin/omi', config),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.

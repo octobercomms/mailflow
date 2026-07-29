@@ -35,6 +35,7 @@ import { senderColor } from '../themes.js';
 import MessageHeaderModal from './MessageHeaderModal.jsx';
 import FolderIcon from './FolderIcon.jsx';
 import TodoistTaskModal from './TodoistTaskModal.jsx';
+import OmiPrPanel from './OmiPrPanel.jsx';
 
 function parseAddressField(raw) {
   try {
@@ -2360,6 +2361,17 @@ ${bodyContent}
           </div>
         )}
       </div>
+
+      {/* OMI PR panel — sender lookup + log coverage. Self-gates to null when OMI is
+          not configured, so it's invisible unless staff have it set up. */}
+      {message && (
+        <div style={{ padding: isMobile ? '0 12px' : '0 28px' }}>
+          <OmiPrPanel
+            message={message}
+            bodyText={body?.text || (body?.html ? body.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '')}
+          />
+        </div>
+      )}
 
       {/* HTML email — iframe sized to full content height; outer container scrolls */}
       {!loadingBody && !bodyError && body?.html && (

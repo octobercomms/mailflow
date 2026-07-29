@@ -2117,6 +2117,83 @@ function CardDavCard() {
   );
 }
 
+// October Marketing Intelligence (OMI) PR connection — lets the reading-pane PR panel
+// look up senders and log coverage against OMI. Base URL + the OMI "PR add-on key"
+// (Settings → in OMI). Key is stored encrypted server-side and never returned in full.
+function OmiCard() {
+  const { t } = useTranslation();
+  const [form, setForm] = useState({ enabled: true, baseUrl: '', apiKey: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.omiAdminGet()
+      .then(r => { if (r.config) setForm({ enabled: r.config.enabled !== false, baseUrl: r.config.baseUrl || '', apiKey: r.config.apiKey || '' }); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    setSaving(true); setError(''); setSaved(false);
+    try {
+      // Don't resend the masked placeholder as a new key.
+      const payload = { enabled: form.enabled, baseUrl: form.baseUrl.trim() };
+      if (form.apiKey && form.apiKey !== '••••••••') payload.apiKey = form.apiKey;
+      await api.omiAdminSave(payload);
+      setSaved(true);
+      setForm(f => ({ ...f, apiKey: f.apiKey ? '••••••••' : '' }));
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) { setError(e.message || 'Save failed'); }
+    finally { setSaving(false); }
+  }
+
+  const inp = { width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 13 };
+  const lbl = { fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 };
+
+  return (
+    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+          {t('admin.integrations.omi.title', { defaultValue: 'OMI — Marketing Intelligence' })}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+        {t('admin.integrations.omi.description', { defaultValue: 'Surface OMI sender profiles and log coverage from the reading pane. Uses the PR add-on key from OMI → Settings.' })}
+      </div>
+      {loading ? (
+        <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>…</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.enabled} onChange={e => setForm(f => ({ ...f, enabled: e.target.checked }))} />
+            {t('admin.integrations.omi.enabled', { defaultValue: 'Enabled' })}
+          </label>
+          <div>
+            <label style={lbl}>{t('admin.integrations.omi.baseUrl', { defaultValue: 'OMI base URL' })}</label>
+            <input style={inp} value={form.baseUrl} placeholder="https://omi.octobercomms.com"
+              onChange={e => setForm(f => ({ ...f, baseUrl: e.target.value }))} />
+          </div>
+          <div>
+            <label style={lbl}>{t('admin.integrations.omi.apiKey', { defaultValue: 'PR add-on key' })}</label>
+            <input style={inp} type="password" value={form.apiKey} placeholder="X-OMI-Key"
+              onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} />
+          </div>
+          {error && <div style={{ color: 'var(--red, #f87171)', fontSize: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={save} disabled={saving}
+              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
+            </button>
+            {saved && <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓ {t('common.saved', { defaultValue: 'Saved' })}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IntegrationsTab() {
   const { t } = useTranslation();
   const { setAccounts, setTodoistConnected } = useStore();
@@ -2746,6 +2823,7 @@ function IntegrationsTab() {
           </div>
 
           <CardDavCard />
+          <OmiCard />
         </div>
       )}
     </div>
