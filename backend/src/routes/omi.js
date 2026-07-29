@@ -40,9 +40,21 @@ async function omiFetch(cfg, method, path, { search, body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(30000),
   });
+  const raw = await res.text();
   let data = null;
-  try { data = await res.json(); } catch { /* non-JSON upstream */ }
-  return { status: res.status, data };
+  try { data = raw ? JSON.parse(raw) : null; } catch { /* non-JSON upstream */ }
+  return { status: res.status, data, raw };
+}
+
+// Relay OMI's response. When OMI replies with a non-JSON body (wrong base URL, an HTML
+// error page, a gateway error), surface a readable message instead of a blank
+// "Request failed" so the misconfiguration is obvious in the panel.
+function relayOmi(res, { status, data, raw }) {
+  if (data) return res.status(status).json(data);
+  const snippet = (raw || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+  return res.status(status >= 400 ? status : 502).json({
+    error: `OMI responded ${status}${snippet ? `: ${snippet}` : ' with an empty/non-JSON body'} — check the OMI base URL + PR add-on key in Admin → Integrations.`,
+  });
 }
 
 // ── Authenticated: is OMI configured? Gates the reading-pane PR panel. ─────────
@@ -56,8 +68,7 @@ router.get('/omi/pr/lookup', requireAuth, async (req, res) => {
   if (!isReady(cfg)) return res.status(503).json({ error: 'OMI is not configured' });
   const email = String(req.query.email || '').trim();
   try {
-    const { status, data } = await omiFetch(cfg, 'GET', '/lookup', { search: `email=${encodeURIComponent(email)}` });
-    res.status(status).json(data ?? {});
+    relayOmi(res, await omiFetch(cfg, 'GET', '/lookup', { search: `email=${encodeURIComponent(email)}` }));
   } catch (err) {
     res.status(502).json({ error: `OMI request failed: ${err.message}` });
   }
@@ -67,8 +78,7 @@ router.post('/omi/pr/contacts', requireAuth, async (req, res) => {
   const cfg = await loadConfig();
   if (!isReady(cfg)) return res.status(503).json({ error: 'OMI is not configured' });
   try {
-    const { status, data } = await omiFetch(cfg, 'POST', '/contacts', { body: req.body || {} });
-    res.status(status).json(data ?? {});
+    relayOmi(res, await omiFetch(cfg, 'POST', '/contacts', { body: req.body || {} }));
   } catch (err) {
     res.status(502).json({ error: `OMI request failed: ${err.message}` });
   }
@@ -78,8 +88,7 @@ router.post('/omi/pr/editorial-log', requireAuth, async (req, res) => {
   const cfg = await loadConfig();
   if (!isReady(cfg)) return res.status(503).json({ error: 'OMI is not configured' });
   try {
-    const { status, data } = await omiFetch(cfg, 'POST', '/editorial-log', { body: req.body || {} });
-    res.status(status).json(data ?? {});
+    relayOmi(res, await omiFetch(cfg, 'POST', '/editorial-log', { body: req.body || {} }));
   } catch (err) {
     res.status(502).json({ error: `OMI request failed: ${err.message}` });
   }
