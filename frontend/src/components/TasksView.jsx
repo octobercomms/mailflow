@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api.js';
+import ClientsView from './ClientsView.jsx';
 
 // Grow a textarea to fit its content (Notion-style wrapping lines).
 const autoSize = (el) => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } };
@@ -274,14 +275,23 @@ export default function TasksView() {
             }}
           />
           <button onClick={() => toggleAssist(b)} title={t('tasksView.assist', { defaultValue: 'How should I tackle this?' })}
-            style={{ marginTop: 1, background: 'none', border: 'none', cursor: 'pointer', color: assist[b.id] ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, padding: '0 2px', opacity: 0.75 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
+            style={{ ...iconBtn, marginTop: 2, background: assist[b.id] ? 'var(--accent-dim)' : 'transparent', color: assist[b.id] ? 'var(--accent)' : 'var(--text-secondary)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.06))'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = assist[b.id] ? 'var(--accent-dim)' : 'transparent'; }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
           </button>
           {b.source === 'ai' && b.source_ref && (
             <button onClick={() => openSource(b)} title={t('tasksView.openEmail', { defaultValue: 'Open source email' })}
-              style={{ marginTop: 2, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', flexShrink: 0, padding: '0 2px', fontSize: 12 }}>✉</button>
+              style={{ ...iconBtn, marginTop: 2, color: 'var(--text-secondary)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.06))'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+            </button>
           )}
-          <button onClick={() => removeBlock(b, blocks[idx - 1]?.id)} style={rowDel} title="Remove">×</button>
+          <button onClick={() => removeBlock(b, blocks[idx - 1]?.id)} title={t('common.remove', { defaultValue: 'Remove' })}
+            style={{ ...iconBtn, marginTop: 2, color: 'var(--text-tertiary)', fontSize: 17 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.06))'; e.currentTarget.style.color = 'var(--red, #e03131)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}>×</button>
         </div>
         {assist[b.id] && (
           <div style={{ margin: '2px 0 8px 27px', padding: '9px 12px', borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
@@ -433,52 +443,69 @@ export default function TasksView() {
       <button onClick={briefMe} disabled={briefBusy} style={btnStyle(false)} title={t('tasksView.briefHint', { defaultValue: 'Get your morning brief' })}>
         {briefBusy ? t('tasksView.briefing', { defaultValue: 'Briefing…' }) : t('tasksView.briefMe', { defaultValue: 'Brief me' })}
       </button>
-      <button onClick={() => setShowSettings(s => !s)} style={{ ...btnStyle(showSettings), display: 'inline-flex', alignItems: 'center' }} title={t('tasksView.settings', { defaultValue: 'Task settings' })}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-        </svg>
-      </button>
       <button onClick={() => addBlock('heading', blocks.length ? blocks[blocks.length - 1].id : undefined)} style={btnStyle(false)}>
         + {t('tasksView.heading', { defaultValue: 'Client heading' })}
       </button>
       <button onClick={clearDone} style={btnStyle(false)}>
         {t('tasksView.clearDone', { defaultValue: 'Clear completed' })}
       </button>
+      <button onClick={() => setShowSettings(true)} style={btnStyle(false)} title={t('tasksView.settings', { defaultValue: 'Accounts, folders & clients' })}>
+        {t('tasksView.settingsBtn', { defaultValue: 'Settings' })}
+      </button>
     </div>
   );
 
+  // Settings replaces the whole tasks/brief workspace: reading config (left) + the
+  // client knowledge base (right). Close returns to tasks + brief.
+  if (showSettings) {
+    return (
+      <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
+            {t('tasksView.settingsTitle2', { defaultValue: 'Task settings' })}
+          </h1>
+          <button onClick={() => setShowSettings(false)} style={{ ...btnStyle(true) }}>
+            {t('tasksView.backToTasks', { defaultValue: 'Done' })}
+          </button>
+        </div>
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, flexDirection: narrow ? 'column' : 'row' }}>
+          {/* Reading config */}
+          <div style={{ width: narrow ? 'auto' : '42%', minWidth: narrow ? 0 : 360, flexShrink: 0, overflow: 'auto', borderRight: narrow ? 'none' : '1px solid var(--border-subtle)', borderBottom: narrow ? '1px solid var(--border-subtle)' : 'none', padding: '20px 22px' }}>
+            <TaskSettings embedded />
+          </div>
+          {/* Client knowledge base */}
+          <div style={{ flex: 1, minHeight: narrow ? 360 : 0, minWidth: 0, display: 'flex' }}>
+            <ClientsView />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ flex: 1, height: '100%', display: 'flex', overflow: 'hidden', background: 'var(--bg-primary)' }}>
-      {/* Left column: the brief (wide screens only) */}
+      {/* Left column: the brief (~1/3, wide screens only) */}
       {!narrow && briefPanel && (
-        <div style={{ width: 340, flexShrink: 0, height: '100%', overflow: 'auto', borderRight: '1px solid var(--border-subtle)', padding: '24px 18px' }}>
+        <div style={{ flex: '0 0 33%', maxWidth: 460, minWidth: 280, height: '100%', overflow: 'auto', borderRight: '1px solid var(--border-subtle)', padding: '24px 20px' }}>
           {briefPanel}
         </div>
       )}
 
-      {/* Center column: tasks */}
+      {/* Main column: tasks (~2/3) */}
       <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'auto' }}>
-        <div style={{ maxWidth: 780, margin: '0 auto', padding: '24px 28px 120px' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto', padding: '24px 28px 120px' }}>
           {toolbar}
           {refreshMsg && <div style={{ color: 'var(--accent)', fontSize: 12.5, marginBottom: 12 }}>{refreshMsg}</div>}
           {error && <div style={{ color: 'var(--red, #e03131)', fontSize: 13, marginBottom: 12 }}>{error}</div>}
           {narrow && briefPanel && <div style={{ marginBottom: 18 }}>{briefPanel}</div>}
-          {narrow && showSettings && <div style={{ marginBottom: 18 }}><TaskSettings onClose={() => setShowSettings(false)} /></div>}
           <div style={{ marginTop: 8 }}>{taskListBody}</div>
         </div>
       </div>
-
-      {/* Right column: settings (wide screens only) */}
-      {!narrow && showSettings && (
-        <div style={{ width: 380, flexShrink: 0, height: '100%', overflow: 'auto', borderLeft: '1px solid var(--border-subtle)', padding: '24px 18px', background: 'var(--bg-primary)' }}>
-          <TaskSettings onClose={() => setShowSettings(false)} embedded />
-        </div>
-      )}
     </div>
   );
 }
 // ── Task settings: which accounts + folders the AI refresh reads, and the client legend.
-function TaskSettings({ onClose }) {
+function TaskSettings({ embedded }) {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState([]);
   const [sources, setSources] = useState({});     // { accountId: { enabled, folders: [] } }
@@ -527,12 +554,18 @@ function TaskSettings({ onClose }) {
   };
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20, background: 'var(--bg-secondary)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+    <div style={embedded
+      ? {}
+      : { border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20, background: 'var(--bg-secondary)' }}>
+      {/* Save pinned at the top so it's a glance-and-change. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
           {t('tasksView.settingsTitle', { defaultValue: 'What should Refresh read?' })}
         </div>
-        <button onClick={onClose} style={rowDel} title="Close">×</button>
+        {saved && <span style={{ fontSize: 12.5, color: 'var(--accent)' }}>{t('common.saved', { defaultValue: 'Saved' })}</span>}
+        <button onClick={save} disabled={saving} style={btnStyle(true)}>
+          {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
+        </button>
       </div>
 
       {loading ? <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>…</div> : (
@@ -631,12 +664,6 @@ function TaskSettings({ onClose }) {
           </div>
 
           {err && <div style={{ color: 'var(--red, #e03131)', fontSize: 12.5, marginTop: 8 }}>{err}</div>}
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={save} disabled={saving} style={btnStyle(true)}>
-              {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
-            </button>
-            {saved && <span style={{ fontSize: 12.5, color: 'var(--accent)' }}>{t('common.saved', { defaultValue: 'Saved' })}</span>}
-          </div>
         </>
       )}
     </div>
@@ -652,4 +679,10 @@ const btnStyle = (primary) => ({
 const rowDel = {
   background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)',
   fontSize: 16, lineHeight: 1, padding: '0 2px', opacity: 0.5,
+};
+// Square, readable row-action button (assist / open-email / remove).
+const iconBtn = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer',
+  flexShrink: 0, padding: 0, lineHeight: 1, transition: 'background 0.12s, color 0.12s',
 };
