@@ -229,19 +229,24 @@ export default function TasksView() {
     else inputRefs.current.delete(id);
   };
 
-  // Group the flat block list into collapsible sections: each heading and the tasks
-  // that follow it, plus any tasks typed before the first heading.
+  // Group the flat block list into two levels: account groups (level 1) each holding
+  // client sections (level 2) of tasks, plus any tasks typed before the first heading.
+  // A list with only client headings (manual, or legacy) renders under a synthetic
+  // account group with no header — so nothing breaks without account headers.
   const preTasks = [];
-  const sections = [];
+  const accountGroups = [];
   {
-    let cur = null;
+    let curA = null, curS = null;
+    const startAccount = (accountBlock) => { curA = { account: accountBlock, sections: [], loose: [] }; accountGroups.push(curA); curS = null; };
     for (const b of blocks) {
-      if (b.kind === 'heading') { cur = { heading: b, tasks: [] }; sections.push(cur); }
-      else if (cur) cur.tasks.push(b);
-      else preTasks.push(b);
+      if (b.kind === 'account') { startAccount(b); }
+      else if (b.kind === 'heading') { if (!curA) startAccount(null); curS = { heading: b, tasks: [] }; curA.sections.push(curS); }
+      else { if (curS) curS.tasks.push(b); else if (curA) curA.loose.push(b); else preTasks.push(b); }
     }
   }
   const flatIndexOf = (id) => blocks.findIndex(x => x.id === id);
+  const sectionOpenCount = (sec) => sec.tasks.filter(x => !x.done).length;
+  const accountOpenCount = (ag) => ag.loose.filter(x => !x.done).length + ag.sections.reduce((n, s) => n + sectionOpenCount(s), 0);
 
   // One task row (checkbox + editable text + assist/email/remove), plus its expandable
   // assist/research panel. Shared by pre-heading tasks and section tasks.
@@ -342,7 +347,52 @@ export default function TasksView() {
     );
   };
 
-  // The task list body (sections + pre-heading tasks). Reused in both layouts.
+  // One client section (level 2): collapsible heading + its tasks.
+  const clientSection = (sec, indent) => {
+    const h = sec.heading;
+    const open = expanded.has(h.id);
+    const openCount = sectionOpenCount(sec);
+    const hIdx = flatIndexOf(h.id);
+    return (
+      <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingLeft: indent }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 0' }}>
+          <button onClick={() => toggleSection(h.id)} aria-label="collapse"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, display: 'flex', flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.12s' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+          </button>
+          <textarea
+            ref={setRef(h.id)}
+            rows={1}
+            value={h.text}
+            onChange={e => onText(h.id, e.target.value, e.target)}
+            onKeyDown={e => onKeyDown(e, h, hIdx)}
+            onFocus={() => openSection(h.id)}
+            placeholder={t('tasksView.headingPh', { defaultValue: 'Client / section' })}
+            style={{
+              flex: 1, border: 'none', outline: 'none', background: 'transparent', resize: 'none',
+              fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+              color: 'var(--text-secondary)', padding: '2px 0', lineHeight: 1.3, fontFamily: 'inherit', overflow: 'hidden', cursor: 'pointer',
+            }}
+          />
+          {openCount > 0 && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 999, padding: '1px 8px', flexShrink: 0 }}>{openCount}</span>}
+          <button onClick={() => removeBlock(h, blocks[hIdx - 1]?.id)} style={{ ...iconBtn, width: 22, height: 22, color: 'var(--text-tertiary)', fontSize: 16 }} title="Remove section">×</button>
+        </div>
+        {open && (
+          <div style={{ paddingBottom: 10, paddingLeft: 19 }}>
+            {sec.tasks.length === 0
+              ? <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', padding: '2px 0 8px' }}>{t('tasksView.sectionEmpty', { defaultValue: 'No tasks here yet.' })}</div>
+              : sec.tasks.map(taskRow)}
+            <button onClick={() => addTaskToSection(h.id, sec.tasks[sec.tasks.length - 1]?.id)}
+              style={{ ...btnStyle(false), marginTop: 6, padding: '4px 10px', fontSize: 12 }}>
+              + {t('tasksView.addTask', { defaultValue: 'Add task' })}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // The task list body: account groups (level 1) → client sections (level 2).
   const taskListBody = loading ? (
     <div style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>…</div>
   ) : blocks.length === 0 ? (
@@ -364,44 +414,30 @@ export default function TasksView() {
           </button>
         </div>
       )}
-      {sections.map(sec => {
-        const h = sec.heading;
-        const open = expanded.has(h.id);
-        const openCount = sec.tasks.filter(x => !x.done).length;
-        const hIdx = flatIndexOf(h.id);
+      {accountGroups.map((ag, i) => {
+        // Synthetic account (no header) — render its client sections directly.
+        if (!ag.account) return <div key={`syn-${i}`}>{ag.sections.map(sec => clientSection(sec, 0))}</div>;
+        const a = ag.account;
+        const open = expanded.has(a.id);
+        const count = accountOpenCount(ag);
+        const aIdx = flatIndexOf(a.id);
         return (
-          <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 0 10px 0' }}>
-              <button onClick={() => toggleSection(h.id)} aria-label="collapse"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, display: 'flex', flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.12s' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+          <div key={a.id} style={{ borderTop: '2px solid var(--border)', marginTop: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0 12px 0', cursor: 'pointer' }} onClick={() => toggleSection(a.id)}>
+              <button aria-label="collapse"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 0, display: 'flex', flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.12s' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
               </button>
-              <textarea
-                ref={setRef(h.id)}
-                rows={1}
-                value={h.text}
-                onChange={e => onText(h.id, e.target.value, e.target)}
-                onKeyDown={e => onKeyDown(e, h, hIdx)}
-                onFocus={() => openSection(h.id)}
-                placeholder={t('tasksView.headingPh', { defaultValue: 'Client / section' })}
-                style={{
-                  flex: 1, border: 'none', outline: 'none', background: 'transparent', resize: 'none',
-                  fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                  color: 'var(--text-secondary)', padding: '2px 0', lineHeight: 1.3, fontFamily: 'inherit', overflow: 'hidden', cursor: 'pointer',
-                }}
-              />
-              {openCount > 0 && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 999, padding: '1px 8px', flexShrink: 0 }}>{openCount}</span>}
-              <button onClick={() => removeBlock(h, blocks[hIdx - 1]?.id)} style={rowDel} title="Remove section">×</button>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text || 'Mail'}</span>
+              {count > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', borderRadius: 999, padding: '1px 9px', flexShrink: 0 }}>{count}</span>}
+              <button onClick={e => { e.stopPropagation(); removeBlock(a, blocks[aIdx - 1]?.id); }} style={{ ...iconBtn, width: 22, height: 22, color: 'var(--text-tertiary)', fontSize: 16 }} title="Remove account section">×</button>
             </div>
             {open && (
-              <div style={{ paddingBottom: 10, paddingLeft: 20 }}>
-                {sec.tasks.length === 0
-                  ? <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', padding: '2px 0 8px' }}>{t('tasksView.sectionEmpty', { defaultValue: 'No tasks here yet.' })}</div>
-                  : sec.tasks.map(taskRow)}
-                <button onClick={() => addTaskToSection(h.id, sec.tasks[sec.tasks.length - 1]?.id)}
-                  style={{ ...btnStyle(false), marginTop: 6, padding: '4px 10px', fontSize: 12 }}>
-                  + {t('tasksView.addTask', { defaultValue: 'Add task' })}
-                </button>
+              <div style={{ paddingBottom: 6 }}>
+                {ag.loose.length > 0 && <div style={{ paddingLeft: 20, paddingBottom: 6 }}>{ag.loose.map(taskRow)}</div>}
+                {ag.sections.length === 0 && ag.loose.length === 0
+                  ? <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', padding: '2px 0 8px 20px' }}>{t('tasksView.sectionEmpty', { defaultValue: 'No tasks here yet.' })}</div>
+                  : ag.sections.map(sec => clientSection(sec, 12))}
               </div>
             )}
           </div>
@@ -411,8 +447,8 @@ export default function TasksView() {
   );
 
   const briefPanel = brief && brief.text && briefOpen ? (
-    <div style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--accent-dim, rgba(0,0,0,0.03))', border: '1px solid var(--border-subtle)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
         </svg>
@@ -491,9 +527,9 @@ export default function TasksView() {
         </div>
       )}
 
-      {/* Main column: tasks (~2/3) */}
+      {/* Main column: tasks (~2/3, full frame width) */}
       <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'auto' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto', padding: '24px 28px 120px' }}>
+        <div style={{ padding: '24px 32px 120px' }}>
           {toolbar}
           {refreshMsg && <div style={{ color: 'var(--accent)', fontSize: 12.5, marginBottom: 12 }}>{refreshMsg}</div>}
           {error && <div style={{ color: 'var(--red, #e03131)', fontSize: 13, marginBottom: 12 }}>{error}</div>}

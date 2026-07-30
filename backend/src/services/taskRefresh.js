@@ -97,6 +97,8 @@ async function runRefresh(userId, opts = {}) {
       const { tasks, refs } = await generateFolderTasks({
         account: job.account, folder: job.folder, cfg, legend, imapManager, extraContext: briefBlock,
       });
+      const label = job.account.name || job.account.email_address;
+      for (const tk of tasks) tk.account = label;
       generated.push(...tasks);
       for (const r of refs) liveRefs.add(r);
     } catch (err) {
@@ -104,15 +106,14 @@ async function runRefresh(userId, opts = {}) {
     }
   }
 
-  // Rebuild: clear previously-generated tasks so they regenerate cleanly (e.g. to drop
-  // stale wording from an older run). Only done once generation SUCCEEDED for at least
-  // one folder, so a total AI failure can't wipe the list and leave nothing. Hand-typed
-  // tasks (source='manual') and all headings are preserved.
+  // Rebuild: clear previously-generated tasks AND their headings/account headers so the
+  // list regenerates cleanly (drops stale wording, re-nests under accounts). Only once
+  // generation SUCCEEDED for at least one folder, so a total AI failure can't wipe the
+  // list. Hand-typed blocks (source='manual') are preserved.
   let rebuilt = false;
   if (opts.rebuild && (generated.length > 0 || errors.length < jobs.length)) {
-    const del = await query("DELETE FROM tasks WHERE user_id = $1 AND source = 'ai' AND kind = 'task'", [userId]);
+    await query("DELETE FROM tasks WHERE user_id = $1 AND source = 'ai' AND kind IN ('task','heading','account')", [userId]);
     rebuilt = true;
-    void del;
   }
 
   const existing = (await query(
@@ -135,45 +136,80 @@ async function runRefresh(userId, opts = {}) {
     }
   }
 
+  const norm = s => String(s || '').trim().toLowerCase();
+  const stripYear = s => String(s || '').replace(/\s+(?:19|20)\d{2}$/i, '').trim();   // "Foo 2026" → "Foo"
+  const clientKey = s => norm(stripYear(s));
+
+  // Two levels: group new tasks by account, then by canonical client (so each account
+  // keeps its own "Other", and near-duplicate client names like "X" / "X 2026" merge).
   generated.sort((a, b) => RANK[a.priority] - RANK[b.priority]);
-  const newByGroup = new Map();
+  const newByAccount = new Map();   // acctKey -> { display, clients: Map(clientKey -> { display, tasks }) }
   for (const g of generated) {
     if (!g.messageId || trackedRefs.has(g.messageId)) continue;
     trackedRefs.add(g.messageId);
-    const key = g.group || 'General';
-    if (!newByGroup.has(key)) newByGroup.set(key, []);
-    newByGroup.get(key).push(g);
+    const acctDisplay = g.account || 'Mail';
+    const aKey = norm(acctDisplay);
+    if (!newByAccount.has(aKey)) newByAccount.set(aKey, { display: acctDisplay, clients: new Map() });
+    const acct = newByAccount.get(aKey);
+    const cKey = clientKey(g.group || 'Other') || 'other';
+    if (!acct.clients.has(cKey)) acct.clients.set(cKey, { display: stripYear(g.group || 'Other') || 'Other', tasks: [] });
+    acct.clients.get(cKey).tasks.push(g);
   }
 
-  const norm = s => String(s || '').trim().toLowerCase();
-  const headingByText = new Map();
-  for (const t of existing) if (t.kind === 'heading') headingByText.set(norm(t.text), t.id);
+  // Map existing structure (walking with account context) so a refresh nests new items
+  // under the right account/client instead of duplicating headers.
+  const accountHeadingId = new Map();    // acctKey -> id
+  const accountSectionLast = new Map();  // acctKey -> last block id in that account's section
+  const clientHeadingId = new Map();     // `${acctKey} ${clientKey}` -> id
+  const clientLast = new Map();          // same key -> last block id under that client
+  {
+    let curA = null, curC = null;
+    for (const b of existing) {
+      if (b.kind === 'account') { curA = norm(b.text); accountHeadingId.set(curA, b.id); accountSectionLast.set(curA, b.id); curC = null; }
+      else if (b.kind === 'heading' && curA) { curC = `${curA} ${clientKey(b.text)}`; clientHeadingId.set(curC, b.id); clientLast.set(curC, b.id); accountSectionLast.set(curA, b.id); }
+      else if (b.kind === 'task' && curA) { accountSectionLast.set(curA, b.id); if (curC) clientLast.set(curC, b.id); }
+      else if (b.kind === 'heading') { curC = null; }   // manual top-level heading breaks account context
+    }
+  }
+
+  const insertBlock = async (kind, text, afterId, extra = {}) => {
+    const pos = await positionAfter(userId, afterId);
+    const cols = ['user_id', 'kind', 'text', 'position', 'source'];
+    const vals = [userId, kind, String(text).slice(0, 2000), pos, 'ai'];
+    if (extra.priority !== undefined) { cols.push('priority'); vals.push(extra.priority); }
+    if (extra.sourceRef !== undefined) { cols.push('source_ref'); vals.push(extra.sourceRef); }
+    const ph = vals.map((_, i) => `$${i + 1}`).join(',');
+    const r = await query(`INSERT INTO tasks (${cols.join(',')}) VALUES (${ph}) RETURNING id`, vals);
+    return r.rows[0].id;
+  };
 
   let added = 0;
   const groups = [];
-  for (const [group, tasks] of newByGroup) {
-    let headingId = headingByText.get(norm(group));
-    if (!headingId) {
-      const pos = await positionAfter(userId, null);
-      const h = await query(
-        `INSERT INTO tasks (user_id, kind, text, position, source) VALUES ($1,'heading',$2,$3,'ai') RETURNING id`,
-        [userId, group.slice(0, 200), pos]
-      );
-      headingId = h.rows[0].id;
-      headingByText.set(norm(group), headingId);
+  for (const [aKey, acct] of newByAccount) {
+    let acctId = accountHeadingId.get(aKey);
+    if (!acctId) {
+      acctId = await insertBlock('account', acct.display.slice(0, 200), null);   // append at end
+      accountHeadingId.set(aKey, acctId);
+      accountSectionLast.set(aKey, acctId);
     }
-    groups.push(group);
-    let afterId = headingId;
-    for (const g of tasks) {
-      const text = g.detail ? `${g.title} — ${g.detail}` : g.title;
-      const pos = await positionAfter(userId, afterId);
-      const r = await query(
-        `INSERT INTO tasks (user_id, kind, text, priority, position, source, source_ref)
-         VALUES ($1,'task',$2,$3,$4,'ai',$5) RETURNING id`,
-        [userId, text.slice(0, 2000), g.priority, pos, g.messageId]
-      );
-      afterId = r.rows[0].id;
-      added++;
+    for (const [cKey, client] of acct.clients) {
+      const fullKey = `${aKey} ${cKey}`;
+      let cId = clientHeadingId.get(fullKey);
+      if (!cId) {
+        cId = await insertBlock('heading', client.display.slice(0, 200), accountSectionLast.get(aKey) || acctId);
+        clientHeadingId.set(fullKey, cId);
+        clientLast.set(fullKey, cId);
+        accountSectionLast.set(aKey, cId);
+        groups.push(client.display);
+      }
+      let afterId = clientLast.get(fullKey) || cId;
+      for (const g of client.tasks) {
+        const text = g.detail ? `${g.title} — ${g.detail}` : g.title;
+        afterId = await insertBlock('task', text, afterId, { priority: g.priority, sourceRef: g.messageId });
+        clientLast.set(fullKey, afterId);
+        accountSectionLast.set(aKey, afterId);
+        added++;
+      }
     }
   }
 

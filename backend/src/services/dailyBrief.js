@@ -15,11 +15,11 @@ async function openTaskOutline(userId) {
     [userId]
   )).rows;
   const lines = [];
-  let heading = 'General';
   let open = 0;
   for (const b of rows) {
-    if (b.kind === 'heading') { heading = b.text || 'General'; lines.push(`\n## ${heading}`); continue; }
-    if (b.done) continue;
+    if (b.kind === 'account') { lines.push(`\n# ${b.text || 'Mail'}`); continue; }
+    if (b.kind === 'heading') { lines.push(`\n## ${b.text || 'General'}`); continue; }
+    if (b.kind !== 'task' || b.done) continue;
     open++;
     const pri = b.priority && b.priority !== 'medium' ? ` [${b.priority}]` : '';
     lines.push(`- ${clip(b.text, 240)}${pri}`);

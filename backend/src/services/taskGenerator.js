@@ -216,7 +216,10 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     'GROUPING: prefer the KNOWN CLIENTS names when an email matches one, but you are NOT limited to that list — when ' +
     'an email clearly belongs to another client, company, or project, infer a concise, stable, title-cased group name ' +
     'from the sender domain and content and create it. Never split by individual person or city (roll those into the ' +
-    'company/client). Use "Other"/"General" only for genuinely miscellaneous one-offs, not as a dumping ground. ' +
+    'company/client). NEVER create two groups that differ only by a year, edition, season, or trivial suffix — e.g. ' +
+    '"Atlanta Design Festival" and "Atlanta Design Festival 2026" are the SAME client; always use the one canonical ' +
+    'name without the year. Keep group names short and canonical so the same client always lands in one group. ' +
+    'Use "Other"/"General" only for genuinely miscellaneous one-offs, not as a dumping ground. ' +
     'For each task write: a short action-first title (start with a verb), and a "detail" of 1–2 sentences that ' +
     'captures the real substance — what specifically is being asked, by whom, any deadline, and (crucially) the ' +
     'concrete sub-items if the email lists several (e.g. "needs sign-off on 4 things: X, Y, Z, and W") — so the ' +
