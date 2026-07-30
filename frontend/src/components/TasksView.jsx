@@ -253,10 +253,13 @@ function TaskSettings({ onClose }) {
   const [accounts, setAccounts] = useState([]);
   const [sources, setSources] = useState({});     // { accountId: { enabled, folders: [] } }
   const [legend, setLegend] = useState('');
+  const [auto, setAuto] = useState({ enabled: false, hour: 8, tz: null });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState('');
+
+  const browserTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
 
   useEffect(() => {
     (async () => {
@@ -264,6 +267,7 @@ function TaskSettings({ onClose }) {
         const [s, l] = await Promise.all([api.tasksSources(), api.aiTaskLegend()]);
         setAccounts(Array.isArray(s.accounts) ? s.accounts : []);
         setSources(s.sources || {});
+        setAuto({ enabled: !!s.autoRefresh?.enabled, hour: Number.isInteger(s.autoRefresh?.hour) ? s.autoRefresh.hour : 8, tz: s.autoRefresh?.tz || null });
         setLegend(l.legend || '');
       } catch (e) { setErr(e.message || 'Failed to load settings'); }
       finally { setLoading(false); }
@@ -282,7 +286,8 @@ function TaskSettings({ onClose }) {
   const save = async () => {
     setSaving(true); setErr(''); setSaved(false);
     try {
-      await Promise.all([api.tasksSaveSources(sources), api.aiSetTaskLegend(legend)]);
+      const autoPayload = { ...auto, tz: auto.tz || browserTz || null };
+      await Promise.all([api.tasksSaveSources(sources, autoPayload), api.aiSetTaskLegend(legend)]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) { setErr(e.message || 'Save failed'); }
@@ -356,6 +361,28 @@ function TaskSettings({ onClose }) {
                 color: 'var(--text-primary)', resize: 'vertical', fontFamily: 'inherit',
               }}
             />
+          </div>
+
+          {/* Daily auto-refresh */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={auto.enabled} onChange={e => setAuto(a => ({ ...a, enabled: e.target.checked }))} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                {t('tasksView.autoTitle', { defaultValue: 'Refresh automatically every morning' })}
+              </span>
+            </label>
+            {auto.enabled && (
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, paddingLeft: 24, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>{t('tasksView.autoAt', { defaultValue: 'Each day at' })}</span>
+                <select value={auto.hour} onChange={e => setAuto(a => ({ ...a, hour: Number(e.target.value) }))}
+                  style={{ fontSize: 12.5, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
+                <span style={{ color: 'var(--text-tertiary)' }}>{auto.tz || browserTz}</span>
+              </div>
+            )}
           </div>
 
           {err && <div style={{ color: 'var(--red, #e03131)', fontSize: 12.5, marginTop: 8 }}>{err}</div>}
