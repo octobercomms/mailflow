@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { loadLegendText, parseLegend, loadAiConfig } from '../services/taskGenerator.js';
+import { query } from '../services/db.js';
+import { loadLegendText, parseLegend, saveLegendText, loadAiConfig } from '../services/taskGenerator.js';
 import { loadClientBriefs, getBrief, upsertBrief, generateClientBrief } from '../services/clientBriefs.js';
 
 // Client knowledge layer API. The client roster comes from the shared legend; each
@@ -29,6 +30,36 @@ router.get('/clients', requireAuth, async (req, res) => {
     clients.push({ client: b.client, hasBrief: !!b.brief, auto: b.auto, updatedAt: b.updated_at, refreshedAt: b.refreshed_at, orphan: true });
   }
   res.json({ clients });
+});
+
+// Add a client to the roster (appends a line to the shared client legend). Optional
+// `terms` are the matching hints (domains, people, project names).
+router.post('/clients', requireAuth, async (req, res) => {
+  const name = String(req.body?.client || '').trim().replace(/[\r\n:]/g, ' ').slice(0, 120);
+  const terms = String(req.body?.terms || '').trim().replace(/[\r\n]/g, ' ').slice(0, 400);
+  if (!name) return res.status(400).json({ error: 'Client name is required' });
+  const legend = parseLegend(await loadLegendText());
+  if (legend.some(e => e.client.toLowerCase() === name.toLowerCase())) {
+    return res.status(409).json({ error: 'That client is already on the list' });
+  }
+  const text = (await loadLegendText()).trim();
+  const line = terms ? `${name}: ${terms}` : name;
+  await saveLegendText(text ? `${text}\n${line}` : line);
+  res.json({ ok: true, client: name });
+});
+
+// Remove a client: strip its line from the legend and delete any stored brief.
+router.delete('/clients/:client', requireAuth, async (req, res) => {
+  const target = req.params.client.trim().toLowerCase();
+  const kept = (await loadLegendText()).split('\n').filter(line => {
+    if (!line.trim()) return false;
+    const idx = line.indexOf(':');
+    const name = (idx === -1 ? line : line.slice(0, idx)).trim().toLowerCase();
+    return name !== target;
+  });
+  await saveLegendText(kept.join('\n'));
+  await query('DELETE FROM client_briefs WHERE user_id = $1 AND client = $2', [uid(req), req.params.client]);
+  res.json({ ok: true });
 });
 
 router.get('/clients/:client', requireAuth, async (req, res) => {

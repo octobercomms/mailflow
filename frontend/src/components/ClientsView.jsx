@@ -17,6 +17,8 @@ export default function ClientsView() {
   const [busy, setBusy] = useState('');             // 'save' | 'regen' | ''
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+  const [newName, setNewName] = useState('');
+  const [adding, setAdding] = useState(false);
   const dirty = useRef(false);
 
   const loadList = useCallback(async () => {
@@ -77,12 +79,38 @@ export default function ClientsView() {
 
   const onBriefChange = (v) => { setBrief(v); dirty.current = true; };
 
+  const addClient = async () => {
+    const name = newName.trim();
+    if (!name) { setAdding(false); return; }
+    setError('');
+    try {
+      await api.clientAdd(name, '');
+      setNewName(''); setAdding(false);
+      await loadList();
+      openClient(name);
+    } catch (e) { setError(e.message || 'Could not add client'); }
+  };
+
+  const removeClient = async (name, e) => {
+    e.stopPropagation();
+    if (!window.confirm(t('clients.removeConfirm', { name, defaultValue: `Remove “${name}” from your client list? This also deletes its brief.` }))) return;
+    setError('');
+    try {
+      await api.clientRemove(name);
+      if (selected === name) { setSelected(null); setBrief(''); }
+      await loadList();
+    } catch (err) { setError(err.message || 'Could not remove client'); }
+  };
+
   return (
     <div style={{ flex: 1, height: '100%', display: 'flex', overflow: 'hidden', background: 'var(--bg-primary)' }}>
       {/* Roster */}
       <div style={{ width: 240, flexShrink: 0, borderRight: '1px solid var(--border-subtle)', overflow: 'auto', padding: '18px 10px' }}>
-        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', padding: '0 8px 8px' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', padding: '0 8px 4px' }}>
           {t('rail.clients', { defaultValue: 'Clients' })}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', padding: '0 8px 10px', lineHeight: 1.45, opacity: 0.8 }}>
+          {t('clients.rosterHint', { defaultValue: 'Add matching terms (domains, people) in Tasks → ⚙ legend to sharpen grouping.' })}
         </div>
         {loadingList ? (
           <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: 8 }}>…</div>
@@ -93,10 +121,10 @@ export default function ClientsView() {
         ) : clients.map(c => {
           const active = c.client === selected;
           return (
-            <button key={c.client} onClick={() => openClient(c.client)}
+            <div key={c.client} className="client-row" onClick={() => openClient(c.client)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
-                padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer', marginBottom: 2,
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box',
+                padding: '7px 8px', borderRadius: 8, cursor: 'pointer', marginBottom: 2,
                 background: active ? 'var(--accent-dim)' : 'transparent',
                 color: active ? 'var(--accent)' : 'var(--text-primary)',
               }}>
@@ -105,9 +133,28 @@ export default function ClientsView() {
                 width: 7, height: 7, borderRadius: 999, flexShrink: 0,
                 background: c.hasBrief ? 'var(--accent)' : 'var(--border)',
               }} />
-            </button>
+              <span onClick={(e) => removeClient(c.client, e)} title={t('clients.remove', { defaultValue: 'Remove client' })}
+                role="button" style={{ flexShrink: 0, cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 15, lineHeight: 1, padding: '0 2px', opacity: 0.55 }}>×</span>
+            </div>
           );
         })}
+
+        {!loadingList && (
+          adding ? (
+            <div style={{ display: 'flex', gap: 6, padding: '6px 8px' }}>
+              <input autoFocus value={newName} onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addClient(); if (e.key === 'Escape') { setAdding(false); setNewName(''); } }}
+                placeholder={t('clients.newName', { defaultValue: 'Client name' })}
+                style={{ flex: 1, minWidth: 0, fontSize: 13, padding: '5px 8px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+              <button onClick={addClient} style={{ ...btn(true), padding: '5px 10px' }}>{t('common.add', { defaultValue: 'Add' })}</button>
+            </div>
+          ) : (
+            <button onClick={() => setAdding(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', padding: '7px 8px', marginTop: 4, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              + {t('clients.addClient', { defaultValue: 'Add client' })}
+            </button>
+          )
+        )}
       </div>
 
       {/* Brief editor */}
@@ -120,8 +167,8 @@ export default function ClientsView() {
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
               <h1 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{selected}</h1>
-              <button onClick={() => regenerate(false)} disabled={!!busy} style={btn(true)}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-2px', marginRight: 5 }}>
+              <button onClick={() => regenerate(false)} disabled={!!busy} style={{ ...btn(true), display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z"/>
                 </svg>
                 {busy === 'regen' ? t('clients.rebuilding', { defaultValue: 'Reading mail…' }) : t('clients.regenerate', { defaultValue: 'Rebuild from mail' })}
