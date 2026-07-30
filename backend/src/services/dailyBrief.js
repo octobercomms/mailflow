@@ -38,14 +38,19 @@ export async function generateDailyBrief(userId, cfg, { save = true } = {}) {
     return { brief: text, open, drafts };
   }
 
+  const today = new Date().toISOString().slice(0, 10);
   const system =
     'You are a sharp executive assistant writing the morning brief for a busy agency owner. ' +
     'From their open task list (grouped by client) and the count of reply drafts waiting for them, write a short, ' +
     'skimmable brief: a one-line hello + read of the day, then the 3–5 things that most deserve attention today ' +
     '(name the client and why it matters), then a one-line nudge on the waiting drafts if any. ' +
     'Be concrete and prioritise ruthlessly — do not just restate the whole list. Warm but efficient. ' +
+    'IMPORTANT: do NOT invent urgency or deadlines. Only call something time-critical if the task text itself states a ' +
+    'concrete deadline that is at/after today\'s date. Never describe a task as "due today" / "this week" unless the ' +
+    'task text clearly says so with a date that is still current — the tasks come from emails of varying ages. ' +
     'Plain text or light markdown, no headings-heavy formatting. Under ~180 words.';
   const user =
+    `TODAY'S DATE IS ${today}.\n\n` +
     `OPEN TASKS (${open}), grouped by client:\n${outline || '(none)'}\n\n` +
     `REPLY DRAFTS WAITING FOR REVIEW: ${drafts}\n\n` +
     'Write the brief.';

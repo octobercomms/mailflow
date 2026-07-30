@@ -158,10 +158,20 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     return '';
   };
 
+  const nowMs = Date.now();
+  const ageLabel = (d) => {
+    if (!d) return '';
+    const days = Math.floor((nowMs - new Date(d).getTime()) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 45) return `${days} days ago`;
+    if (days < 400) return `${Math.round(days / 30)} months ago`;
+    return `${(days / 365).toFixed(1)} years ago`;
+  };
   const lines = emails.map((m, i) => {
     const from = clip(m.from_name || m.from_email || 'unknown', 80);
     const subject = clip(m.subject, 160) || '(no subject)';
-    const when = m.date ? new Date(m.date).toISOString().slice(0, 10) : '';
+    const when = m.date ? `${new Date(m.date).toISOString().slice(0, 10)} (${ageLabel(m.date)})` : '';
     const bodyText = clip(m.body_text || m.snippet, 2000);
     const hint = hintFor(m);
     return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}${hint ? ` — CLIENT: ${hint}` : ''}\n${bodyText}`;
@@ -172,8 +182,12 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
       'the sender, the people named, and the brand/project mentioned in the body (the terms in parentheses are ' +
       'matching hints; a "CLIENT:" tag on an email is an authoritative match you should trust):\n' +
       legend.map(e => `- ${e.client}${e.terms.length ? ` (${e.terms.join(', ')})` : ''}`).join('\n') +
-      '\nDo NOT create per-person or per-project groups (e.g. a contact name or a city) — roll those up into the ' +
-      'matching client. If an email genuinely matches no client above, group it under "Other".\n\n'
+      '\nThis list is a STARTING POINT, not a closed set. When an email matches one of these, use that exact name. ' +
+      'When an email clearly belongs to a client, company, or project that is NOT on the list, DO create a new, ' +
+      'sensible group for it — infer the name from the sender\'s company/domain and the content (e.g. "Acme Studio", ' +
+      '"Trinity Court"). Do NOT dump everything unmatched into "Other". ' +
+      'Never split by individual person or city — roll those into the company/client. ' +
+      'Reserve "Other" only for genuinely miscellaneous one-offs that fit no client or project.\n\n'
     : '';
 
   const system = 'You turn a folder of emails into a thorough, grouped, prioritized to-do digest for a busy agency owner. ' +
@@ -191,19 +205,28 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     'clients, or far apart in time (e.g. one from 2016 and one from this year) are ALWAYS separate tasks — or ' +
     'omit the stale one entirely — even if the subject is identical. Judge each email by its sender, date, and ' +
     'body, not its subject. ' +
-    'Emails more than about a year old are very likely stale leftovers — include one only if it clearly describes ' +
-    'an action that is still genuinely open today; otherwise skip it. ' +
-    'When a KNOWN CLIENTS list is provided, you MUST group strictly by those exact client names — never invent ' +
-    'per-person or per-project group labels. When no list is provided, infer the client/project from the sender ' +
-    'domain, names, and content, and use "General" only when nothing more specific fits. ' +
+    'DATES MATTER. You are given today\'s date, and every email is dated. Judge recency and any deadline against ' +
+    'TODAY — never against the email\'s own sense of "now". NEVER carry over time-relative wording from an email ' +
+    '("this week", "by Friday", "today", "tomorrow") as if it were current: an email from two months ago saying ' +
+    '"sign-off this week" does NOT mean this week now. Restate deadlines as the concrete date if the email gives one, ' +
+    'and drop vague relative timing when the email is not recent. If a stated deadline has clearly already passed, ' +
+    'either omit the item or frame it as a possibly-stale follow-up ("Check whether … is still needed") — do not ' +
+    'present a lapsed deadline as urgent. Emails more than about a year old are very likely stale leftovers — include ' +
+    'one only if it clearly describes an action still genuinely open today; otherwise skip it. ' +
+    'GROUPING: prefer the KNOWN CLIENTS names when an email matches one, but you are NOT limited to that list — when ' +
+    'an email clearly belongs to another client, company, or project, infer a concise, stable, title-cased group name ' +
+    'from the sender domain and content and create it. Never split by individual person or city (roll those into the ' +
+    'company/client). Use "Other"/"General" only for genuinely miscellaneous one-offs, not as a dumping ground. ' +
     'For each task write: a short action-first title (start with a verb), and a "detail" of 1–2 sentences that ' +
     'captures the real substance — what specifically is being asked, by whom, any deadline, and (crucially) the ' +
     'concrete sub-items if the email lists several (e.g. "needs sign-off on 4 things: X, Y, Z, and W") — so the ' +
     'user knows exactly what it involves without opening the email. ' +
     'Use priority honestly: high = urgent/explicitly deadline-bound or chased, medium = normal, low = nice-to-have. ' +
     'Do not invent anything not supported by an email.';
-  const user = `Here are the emails in the "${folder}" folder for ${account.email_address} (newest first). ` +
-    `Full message bodies are included — read them, don't just skim the subject.\n\n` +
+  const today = new Date().toISOString().slice(0, 10);
+  const user = `TODAY'S DATE IS ${today}. Judge every email's recency and deadlines against this date.\n\n` +
+    `Here are the emails in the "${folder}" folder for ${account.email_address} (newest first). ` +
+    `Full message bodies are included — read them, don't just skim the subject. Each email's own date is shown after its subject.\n\n` +
     `${extraContext ? extraContext + '\n\n' : ''}` +
     `${legendBlock}` +
     `${lines}\n\n` +
