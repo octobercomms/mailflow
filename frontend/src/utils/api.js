@@ -339,6 +339,10 @@ export const api = {
   tasksSources: () => request('GET', '/tasks/sources'),
   tasksSaveSources: (sources, autoRefresh) => request('PUT', '/tasks/sources', { sources, autoRefresh }),
   tasksRefresh: () => request('POST', '/tasks/refresh'),
+  clientsList: () => request('GET', '/clients'),
+  clientBriefGet: (client) => request('GET', `/clients/${encodeURIComponent(client)}`),
+  clientBriefSave: (client, brief) => request('PUT', `/clients/${encodeURIComponent(client)}`, { brief }),
+  clientBriefRegenerate: (client, force) => request('POST', `/clients/${encodeURIComponent(client)}/regenerate`, { force: !!force }),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.

@@ -67,12 +67,40 @@ export async function loadAiConfig() {
   return cfg;
 }
 
+// ── Generic non-streaming completion ──────────────────────────────────────────
+// One place for the OpenAI-compatible /chat/completions call the assistant features
+// (tasks, client briefs, drafts, daily brief, research) all share. Note: this model
+// rejects a `temperature` field, so we never send one. Throws Error tagged .status.
+export async function aiComplete(cfg, messages, { timeoutMs = 120000 } = {}) {
+  const apiKey = cfg.apiKey ? decrypt(cfg.apiKey) : null;
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  // Trust boundary: intentionally plain fetch (see ai.js) — the admin-configured base
+  // URL legitimately points at an internal/self-hosted provider.
+  const aiRes = await fetch(`${cfg.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ model: cfg.model, messages, stream: false }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!aiRes.ok) {
+    const errText = await aiRes.text();
+    const e = new Error(`AI provider error (${aiRes.status}): ${errText.slice(0, 300)}`);
+    e.status = 502; throw e;
+  }
+  const data = await aiRes.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string') { const e = new Error('AI provider returned an unexpected response'); e.status = 502; throw e; }
+  return content;
+}
+
 // ── The generator ─────────────────────────────────────────────────────────────
 // Reads one account's folder, fetches missing bodies on demand, asks the model for
 // a grouped/prioritized task list, and returns normalized tasks. `refs` is the set
 // of message-ids currently present in the folder — the hub uses it to auto-complete
 // tasks whose source email has since been filed elsewhere.
-export async function generateFolderTasks({ account, folder, cfg, legend, imapManager }) {
+export async function generateFolderTasks({ account, folder, cfg, legend, imapManager, extraContext = '' }) {
   const msgResult = await query(
     `SELECT id, uid, message_id, subject, from_name, from_email, snippet, body_text, date, is_read
        FROM messages
@@ -176,6 +204,7 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     'Do not invent anything not supported by an email.';
   const user = `Here are the emails in the "${folder}" folder for ${account.email_address} (newest first). ` +
     `Full message bodies are included — read them, don't just skim the subject.\n\n` +
+    `${extraContext ? extraContext + '\n\n' : ''}` +
     `${legendBlock}` +
     `${lines}\n\n` +
     'Return ONLY valid JSON, no prose, in this exact shape:\n' +
@@ -185,29 +214,10 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     'emailIndex is the [n] of the email the task comes from. Order tasks high → low priority within the whole list. ' +
     'Aim to reflect every genuinely outstanding action across the folder. If truly nothing needs action, return {"tasks":[]}.';
 
-  const apiKey = cfg.apiKey ? decrypt(cfg.apiKey) : null;
-  const headers = { 'Content-Type': 'application/json' };
-  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-
-  let content;
-  const aiRes = await fetch(`${cfg.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: cfg.model,
-      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      stream: false,
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-  if (!aiRes.ok) {
-    const errText = await aiRes.text();
-    const e = new Error(`AI provider error (${aiRes.status}): ${errText.slice(0, 300)}`);
-    e.status = 502; throw e;
-  }
-  const data = await aiRes.json();
-  content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string') { const e = new Error('AI provider returned an unexpected response'); e.status = 502; throw e; }
+  const content = await aiComplete(cfg, [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]);
 
   // Parse the JSON, tolerating ```json fences or surrounding prose, and salvaging a
   // list truncated mid-array by the provider's output cap.

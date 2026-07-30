@@ -1,6 +1,7 @@
 import { query } from './db.js';
 import { imapManager } from '../index.js';
 import { generateFolderTasks, loadAiConfig, loadLegendText, parseLegend } from './taskGenerator.js';
+import { loadClientBriefs, briefContextBlock } from './clientBriefs.js';
 
 // The Tasks-hub refresh, factored out of the route so the daily scheduler and the
 // POST /tasks/refresh handler run identical logic. Sweeps each of a user's
@@ -49,13 +50,14 @@ export async function refreshUserTasks(userId) {
   if (!jobs.length) { const e = new Error('No task folders configured'); e.code = 'NO_SOURCES'; throw e; }
 
   const legend = parseLegend(await loadLegendText());
+  const briefBlock = briefContextBlock(await loadClientBriefs(userId));
   const generated = [];
   const liveRefs = new Set();
   const errors = [];
   for (const job of jobs) {
     try {
       const { tasks, refs } = await generateFolderTasks({
-        account: job.account, folder: job.folder, cfg, legend, imapManager,
+        account: job.account, folder: job.folder, cfg, legend, imapManager, extraContext: briefBlock,
       });
       generated.push(...tasks);
       for (const r of refs) liveRefs.add(r);

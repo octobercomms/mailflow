@@ -13,6 +13,7 @@ import Sidebar from './Sidebar.jsx';
 import MessageList from './MessageList.jsx';
 import MessagePane from './MessagePane.jsx';
 import TasksView from './TasksView.jsx';
+import ClientsView from './ClientsView.jsx';
 import FunctionRail from './FunctionRail.jsx';
 import GtdSidebarContent from './GtdSidebarContent.jsx';
 import NotificationToasts from './NotificationToasts.jsx';
@@ -722,10 +723,12 @@ export default function MailApp() {
       overflow: 'hidden',
       background: 'var(--bg-primary)',
     }}>
-      {/* Gmail-style function rail: switch between Mail and Tasks. */}
+      {/* Gmail-style function rail: switch between Mail, Tasks and Clients. */}
       <FunctionRail view={topView} onChange={setTopView} isMobile={isMobile} />
       {topView === 'tasks' ? (
         <TasksView />
+      ) : topView === 'clients' ? (
+        <ClientsView />
       ) : isMobile ? (
         <>
           {/* Backdrop — covers full screen including status bar area */}
