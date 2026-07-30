@@ -28,11 +28,46 @@ export async function positionAfter(userId, afterId) {
   return Number(max.m) + 1;
 }
 
+// Per-user serialization: a manual refresh and the 8am scheduled run (or two quick
+// clicks) must not overlap and double-insert. Callers await the same in-flight run.
+const locks = new Map();
+export async function refreshUserTasks(userId) {
+  while (locks.get(userId)) { try { await locks.get(userId); } catch { /* prior run's error is its caller's */ } }
+  let release;
+  const gate = new Promise(r => { release = r; });
+  locks.set(userId, gate);
+  try { return await runRefresh(userId); }
+  finally { locks.delete(userId); release(); }
+}
+
+// ── Async job registry ────────────────────────────────────────────────────────
+// The refresh can take minutes across several folders — far past the 60s API
+// gateway timeout — so the route starts it in the background and the client polls
+// getRefreshStatus(). In-memory (single backend instance); lost state on restart
+// simply reads as "not running".
+const runs = new Map();   // userId -> { running, startedAt, result, error, finishedAt }
+
+export function getRefreshStatus(userId) {
+  return runs.get(userId) || { running: false, result: null, error: null };
+}
+
+export function startUserRefresh(userId) {
+  const cur = runs.get(userId);
+  if (cur && cur.running) return { alreadyRunning: true };
+  const job = { running: true, startedAt: Date.now(), result: null, error: null, finishedAt: null };
+  runs.set(userId, job);
+  refreshUserTasks(userId)
+    .then(result => { job.result = result; })
+    .catch(err => { job.error = err.code === 'NO_SOURCES' ? 'NO_SOURCES' : (err.message || 'Refresh failed'); })
+    .finally(() => { job.running = false; job.finishedAt = Date.now(); });
+  return { alreadyRunning: false };
+}
+
 // Runs one refresh for a user. Throws an Error tagged with .code:
 //   'NO_AI'      — provider not configured/enabled (err.status carries the HTTP code)
 //   'NO_SOURCES' — the user has no task folders configured
 // Returns { added, completed, groups, folders, errors }.
-export async function refreshUserTasks(userId) {
+async function runRefresh(userId) {
   const cfg = await loadAiConfig();   // throws with .status if unavailable
 
   const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [userId]);

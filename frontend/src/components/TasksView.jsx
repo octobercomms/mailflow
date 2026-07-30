@@ -157,14 +157,36 @@ export default function TasksView() {
   const refresh = async () => {
     setRefreshing(true); setRefreshMsg(''); setError('');
     try {
-      const r = await api.tasksRefresh();
+      await api.tasksRefresh();                          // starts the background sweep
+      // Poll until it finishes — a full sweep across folders can take minutes.
+      const startedAt = Date.now();
+      const MAX_MS = 12 * 60 * 1000;
+      let status;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        await new Promise(r => setTimeout(r, 3000));
+        status = await api.tasksRefreshStatus();
+        if (!status.running) break;
+        if (Date.now() - startedAt > MAX_MS) {
+          setRefreshMsg(t('tasksView.stillRunning', { defaultValue: 'Still working — check back in a moment.' }));
+          setRefreshing(false);
+          return;
+        }
+      }
       await load();
-      const bits = [];
-      if (r.added) bits.push(t('tasksView.added', { count: r.added, defaultValue: `${r.added} new` }));
-      if (r.completed) bits.push(t('tasksView.autoDone', { count: r.completed, defaultValue: `${r.completed} auto-completed` }));
-      let msg = bits.length ? bits.join(' · ') : t('tasksView.upToDate', { defaultValue: 'Already up to date' });
-      if (r.errors && r.errors.length) msg += ` · ${r.errors.length} folder(s) failed`;
-      setRefreshMsg(msg);
+      if (status.error === 'NO_SOURCES') {
+        setError(t('tasksView.noSources', { defaultValue: 'No task folders configured. Choose which accounts and folders to read in settings.' }));
+      } else if (status.error) {
+        setError(status.error);
+      } else {
+        const r = status.result || {};
+        const bits = [];
+        if (r.added) bits.push(t('tasksView.added', { count: r.added, defaultValue: `${r.added} new` }));
+        if (r.completed) bits.push(t('tasksView.autoDone', { count: r.completed, defaultValue: `${r.completed} auto-completed` }));
+        let msg = bits.length ? bits.join(' · ') : t('tasksView.upToDate', { defaultValue: 'Already up to date' });
+        if (r.errors && r.errors.length) msg += ` · ${r.errors.length} folder(s) failed`;
+        setRefreshMsg(msg);
+      }
     } catch (e) {
       setError(e.message || 'Refresh failed');
     } finally {

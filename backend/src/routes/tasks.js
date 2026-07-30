@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from '../services/db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { refreshUserTasks, positionAfter } from '../services/taskRefresh.js';
+import { startUserRefresh, getRefreshStatus, positionAfter } from '../services/taskRefresh.js';
 import { generateDailyBrief, getCachedBrief, generateTaskAssist } from '../services/dailyBrief.js';
 
 // Native task list — an ordered sequence of blocks (headings + checkbox tasks) per
@@ -153,17 +153,17 @@ router.put('/tasks/sources', requireAuth, async (req, res) => {
 
 // ── AI refresh into the hub ───────────────────────────────────────────────────
 // Sweep every configured task folder, generate tasks, and merge into this user's
-// list (see services/taskRefresh.js). The daily scheduler calls the same function.
-router.post('/tasks/refresh', requireAuth, async (req, res) => {
-  try {
-    const result = await refreshUserTasks(uid(req));
-    res.json({ ok: true, ...result });
-  } catch (err) {
-    if (err.code === 'NO_SOURCES') {
-      return res.status(400).json({ error: 'No task folders configured. Choose which accounts and folders to read in Task settings.' });
-    }
-    res.status(err.status || 502).json({ error: err.message || 'Refresh failed' });
-  }
+// list (see services/taskRefresh.js). A full sweep can run for minutes — past the
+// 60s API gateway timeout — so it runs in the background: POST starts it, the client
+// polls GET /tasks/refresh/status. The daily scheduler calls refreshUserTasks directly.
+router.post('/tasks/refresh', requireAuth, (req, res) => {
+  const { alreadyRunning } = startUserRefresh(uid(req));
+  res.status(202).json({ ok: true, running: true, alreadyRunning });
+});
+
+router.get('/tasks/refresh/status', requireAuth, (req, res) => {
+  const s = getRefreshStatus(uid(req));
+  res.json({ running: !!s.running, result: s.result || null, error: s.error || null, finishedAt: s.finishedAt || null });
 });
 
 // ── Daily brief ───────────────────────────────────────────────────────────────

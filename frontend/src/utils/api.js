@@ -339,6 +339,7 @@ export const api = {
   tasksSources: () => request('GET', '/tasks/sources'),
   tasksSaveSources: (sources, autoRefresh, autoDrafts) => request('PUT', '/tasks/sources', { sources, autoRefresh, autoDrafts }),
   tasksRefresh: () => request('POST', '/tasks/refresh'),
+  tasksRefreshStatus: () => request('GET', '/tasks/refresh/status'),
   clientsList: () => request('GET', '/clients'),
   clientAdd: (client, terms) => request('POST', '/clients', { client, terms }),
   clientRemove: (client) => request('DELETE', `/clients/${encodeURIComponent(client)}`),
