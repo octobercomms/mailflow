@@ -31,12 +31,12 @@ export async function positionAfter(userId, afterId) {
 // Per-user serialization: a manual refresh and the 8am scheduled run (or two quick
 // clicks) must not overlap and double-insert. Callers await the same in-flight run.
 const locks = new Map();
-export async function refreshUserTasks(userId) {
+export async function refreshUserTasks(userId, opts = {}) {
   while (locks.get(userId)) { try { await locks.get(userId); } catch { /* prior run's error is its caller's */ } }
   let release;
   const gate = new Promise(r => { release = r; });
   locks.set(userId, gate);
-  try { return await runRefresh(userId); }
+  try { return await runRefresh(userId, opts); }
   finally { locks.delete(userId); release(); }
 }
 
@@ -51,12 +51,12 @@ export function getRefreshStatus(userId) {
   return runs.get(userId) || { running: false, result: null, error: null };
 }
 
-export function startUserRefresh(userId) {
+export function startUserRefresh(userId, opts = {}) {
   const cur = runs.get(userId);
   if (cur && cur.running) return { alreadyRunning: true };
   const job = { running: true, startedAt: Date.now(), result: null, error: null, finishedAt: null };
   runs.set(userId, job);
-  refreshUserTasks(userId)
+  refreshUserTasks(userId, opts)
     .then(result => { job.result = result; })
     .catch(err => { job.error = err.code === 'NO_SOURCES' ? 'NO_SOURCES' : (err.message || 'Refresh failed'); })
     .finally(() => { job.running = false; job.finishedAt = Date.now(); });
@@ -66,8 +66,11 @@ export function startUserRefresh(userId) {
 // Runs one refresh for a user. Throws an Error tagged with .code:
 //   'NO_AI'      — provider not configured/enabled (err.status carries the HTTP code)
 //   'NO_SOURCES' — the user has no task folders configured
-// Returns { added, completed, groups, folders, errors }.
-async function runRefresh(userId) {
+// opts.rebuild deletes existing AI-generated tasks first, so the list is regenerated
+// from scratch (used to clear stale wording from an earlier run). Hand-typed tasks and
+// headings are never touched.
+// Returns { added, completed, groups, folders, errors, rebuilt }.
+async function runRefresh(userId, opts = {}) {
   const cfg = await loadAiConfig();   // throws with .status if unavailable
 
   const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [userId]);
@@ -99,6 +102,17 @@ async function runRefresh(userId) {
     } catch (err) {
       errors.push(`${job.account.email_address} / ${job.folder}: ${err.message}`);
     }
+  }
+
+  // Rebuild: clear previously-generated tasks so they regenerate cleanly (e.g. to drop
+  // stale wording from an older run). Only done once generation SUCCEEDED for at least
+  // one folder, so a total AI failure can't wipe the list and leave nothing. Hand-typed
+  // tasks (source='manual') and all headings are preserved.
+  let rebuilt = false;
+  if (opts.rebuild && (generated.length > 0 || errors.length < jobs.length)) {
+    const del = await query("DELETE FROM tasks WHERE user_id = $1 AND source = 'ai' AND kind = 'task'", [userId]);
+    rebuilt = true;
+    void del;
   }
 
   const existing = (await query(
@@ -163,5 +177,5 @@ async function runRefresh(userId) {
     }
   }
 
-  return { added, completed, groups, folders: jobs.length, errors };
+  return { added, completed, groups, folders: jobs.length, errors, rebuilt };
 }

@@ -154,10 +154,11 @@ export default function TasksView() {
     load();
   };
 
-  const refresh = async () => {
+  const refresh = async (rebuild = false) => {
+    if (rebuild && !window.confirm(t('tasksView.rebuildConfirm', { defaultValue: 'Rebuild the list from your mail? This clears AI-generated tasks and regenerates them (your typed tasks and headings stay).' }))) return;
     setRefreshing(true); setRefreshMsg(''); setError('');
     try {
-      await api.tasksRefresh();                          // starts the background sweep
+      await api.tasksRefresh(rebuild);                   // starts the background sweep
       // Poll until it finishes — a full sweep across folders can take minutes.
       const startedAt = Date.now();
       const MAX_MS = 12 * 60 * 1000;
@@ -186,6 +187,9 @@ export default function TasksView() {
         let msg = bits.length ? bits.join(' · ') : t('tasksView.upToDate', { defaultValue: 'Already up to date' });
         if (r.errors && r.errors.length) msg += ` · ${r.errors.length} folder(s) failed`;
         setRefreshMsg(msg);
+        // Freshen the brief so the card reflects the just-refreshed list, not a cached
+        // (possibly earlier-day) version. Best-effort — never block the refresh on it.
+        api.tasksBriefGenerate().then(br => setBrief({ text: br.brief, date: null, stale: false })).catch(() => {});
       }
     } catch (e) {
       setError(e.message || 'Refresh failed');
@@ -214,11 +218,14 @@ export default function TasksView() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
             {t('tasksView.title', { defaultValue: 'Tasks' })}
           </h1>
-          <button onClick={refresh} disabled={refreshing} style={{ ...btnStyle(true), display: 'inline-flex', alignItems: 'center', gap: 6 }} title={t('tasksView.refreshHint', { defaultValue: 'Read your mail folders and add tasks' })}>
+          <button onClick={() => refresh(false)} disabled={refreshing} style={{ ...btnStyle(true), display: 'inline-flex', alignItems: 'center', gap: 6 }} title={t('tasksView.refreshHint', { defaultValue: 'Read your mail folders and add new tasks' })}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z"/>
             </svg>
             {refreshing ? t('tasksView.refreshing', { defaultValue: 'Reading mail…' }) : t('tasksView.refresh', { defaultValue: 'Refresh from mail' })}
+          </button>
+          <button onClick={() => refresh(true)} disabled={refreshing} style={btnStyle(false)} title={t('tasksView.rebuildHint', { defaultValue: 'Clear AI tasks and regenerate the list from scratch' })}>
+            {t('tasksView.rebuild', { defaultValue: 'Rebuild' })}
           </button>
           <button onClick={briefMe} disabled={briefBusy} style={btnStyle(false)} title={t('tasksView.briefHint', { defaultValue: 'Get your morning brief' })}>
             {briefBusy ? t('tasksView.briefing', { defaultValue: 'Briefing…' }) : t('tasksView.briefMe', { defaultValue: 'Brief me' })}

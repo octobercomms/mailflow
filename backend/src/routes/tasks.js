@@ -157,7 +157,8 @@ router.put('/tasks/sources', requireAuth, async (req, res) => {
 // 60s API gateway timeout — so it runs in the background: POST starts it, the client
 // polls GET /tasks/refresh/status. The daily scheduler calls refreshUserTasks directly.
 router.post('/tasks/refresh', requireAuth, (req, res) => {
-  const { alreadyRunning } = startUserRefresh(uid(req));
+  const rebuild = req.body?.rebuild === true;
+  const { alreadyRunning } = startUserRefresh(uid(req), { rebuild });
   res.status(202).json({ ok: true, running: true, alreadyRunning });
 });
 
