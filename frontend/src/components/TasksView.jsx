@@ -254,6 +254,7 @@ function TaskSettings({ onClose }) {
   const [sources, setSources] = useState({});     // { accountId: { enabled, folders: [] } }
   const [legend, setLegend] = useState('');
   const [auto, setAuto] = useState({ enabled: false, hour: 8, tz: null });
+  const [autoDrafts, setAutoDrafts] = useState({ enabled: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -268,6 +269,7 @@ function TaskSettings({ onClose }) {
         setAccounts(Array.isArray(s.accounts) ? s.accounts : []);
         setSources(s.sources || {});
         setAuto({ enabled: !!s.autoRefresh?.enabled, hour: Number.isInteger(s.autoRefresh?.hour) ? s.autoRefresh.hour : 8, tz: s.autoRefresh?.tz || null });
+        setAutoDrafts({ enabled: !!s.autoDrafts?.enabled });
         setLegend(l.legend || '');
       } catch (e) { setErr(e.message || 'Failed to load settings'); }
       finally { setLoading(false); }
@@ -287,7 +289,7 @@ function TaskSettings({ onClose }) {
     setSaving(true); setErr(''); setSaved(false);
     try {
       const autoPayload = { ...auto, tz: auto.tz || browserTz || null };
-      await Promise.all([api.tasksSaveSources(sources, autoPayload), api.aiSetTaskLegend(legend)]);
+      await Promise.all([api.tasksSaveSources(sources, autoPayload, autoDrafts), api.aiSetTaskLegend(legend)]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) { setErr(e.message || 'Save failed'); }
@@ -383,6 +385,19 @@ function TaskSettings({ onClose }) {
                 <span style={{ color: 'var(--text-tertiary)' }}>{auto.tz || browserTz}</span>
               </div>
             )}
+          </div>
+
+          {/* Background auto-drafts */}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={autoDrafts.enabled} onChange={e => setAutoDrafts({ enabled: e.target.checked })} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                {t('tasksView.draftsTitle', { defaultValue: 'Draft replies for me in the background' })}
+              </span>
+            </label>
+            <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 6, paddingLeft: 24, lineHeight: 1.5 }}>
+              {t('tasksView.draftsHelp', { defaultValue: 'Through the day, Claude drafts a reply (in your voice) to new mail in your task folders. A suggestion waits in the reading pane — nothing is ever sent until you review and send it.' })}
+            </div>
           </div>
 
           {err && <div style={{ color: 'var(--red, #e03131)', fontSize: 12.5, marginTop: 8 }}>{err}</div>}

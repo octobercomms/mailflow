@@ -1,14 +1,17 @@
 import { query } from './db.js';
 import { refreshUserTasks } from './taskRefresh.js';
+import { runDraftSweep } from './draftWriter.js';
 
 // Daily auto-refresh of the Tasks hub. Polls every few minutes; for each user who
 // has opted in (preferences.taskAutoRefresh.enabled) and has task folders set, runs
 // one refresh once per local day at or after their target hour. Opt-in, timezone
 // aware, and idempotent per day via a stored lastRun date.
 
-const POLL_MS = 5 * 60 * 1000;   // 5 minutes
+const POLL_MS = 5 * 60 * 1000;        // 5 minutes — daily refresh gate
+const DRAFT_POLL_MS = 20 * 60 * 1000; // 20 minutes — background draft sweep
 const DEFAULT_TZ = process.env.TASK_TZ || 'Europe/London';
 let timer = null;
+let draftTimer = null;
 
 // { hour: 0-23, date: 'YYYY-MM-DD' } in the given IANA timezone.
 function localParts(tz) {
@@ -64,6 +67,26 @@ async function tick() {
   }
 }
 
+// Background auto-drafts: for each opted-in user (preferences.autoDrafts.enabled),
+// draft replies for recent unanswered mail in their watched folders. Bounded per run
+// by runDraftSweep. Runs on its own slower cadence, independent of the daily gate.
+async function draftTick() {
+  let users;
+  try { users = await query("SELECT id, preferences FROM users"); }
+  catch (e) { console.warn('[draft-sweep] user query failed:', e.message); return; }
+  for (const u of users.rows) {
+    const prefs = u.preferences || {};
+    if (prefs.autoDrafts?.enabled !== true) continue;
+    if (!hasSources(prefs)) continue;
+    try {
+      const r = await runDraftSweep(u.id);
+      if (r.created) console.log(`[draft-sweep] ${u.id}: drafted ${r.created} repl${r.created === 1 ? 'y' : 'ies'}`);
+    } catch (e) {
+      if (e.code !== 'NO_SOURCES') console.warn(`[draft-sweep] ${u.id}: ${e.message}`);
+    }
+  }
+}
+
 export function startTaskScheduler() {
   if (timer) return;
   // A first tick shortly after boot catches a user whose target hour already passed
@@ -71,9 +94,15 @@ export function startTaskScheduler() {
   timer = setInterval(() => { tick().catch(e => console.warn('[task-scheduler] tick error:', e.message)); }, POLL_MS);
   if (timer.unref) timer.unref();
   setTimeout(() => { tick().catch(() => {}); }, 30000).unref?.();
-  console.log(`[task-scheduler] started (poll ${POLL_MS / 60000}m, default tz ${DEFAULT_TZ})`);
+
+  draftTimer = setInterval(() => { draftTick().catch(e => console.warn('[draft-sweep] tick error:', e.message)); }, DRAFT_POLL_MS);
+  if (draftTimer.unref) draftTimer.unref();
+  setTimeout(() => { draftTick().catch(() => {}); }, 90000).unref?.();
+
+  console.log(`[task-scheduler] started (poll ${POLL_MS / 60000}m, drafts ${DRAFT_POLL_MS / 60000}m, default tz ${DEFAULT_TZ})`);
 }
 
 export function stopTaskScheduler() {
   if (timer) { clearInterval(timer); timer = null; }
+  if (draftTimer) { clearInterval(draftTimer); draftTimer = null; }
 }

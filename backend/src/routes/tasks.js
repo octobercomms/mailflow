@@ -91,6 +91,7 @@ router.get('/tasks/sources', requireAuth, async (req, res) => {
   const sources = prefs.taskSources || {};
   const auto = prefs.taskAutoRefresh || {};
   const autoRefresh = { enabled: auto.enabled === true, hour: Number.isInteger(auto.hour) ? auto.hour : 8, tz: auto.tz || null };
+  const autoDrafts = { enabled: prefs.autoDrafts?.enabled === true };
   const accounts = [];
   for (const a of accts.rows) {
     const folders = (await query(
@@ -98,7 +99,7 @@ router.get('/tasks/sources', requireAuth, async (req, res) => {
     )).rows;
     accounts.push({ id: a.id, email: a.email_address, folders });
   }
-  res.json({ sources, accounts, autoRefresh });
+  res.json({ sources, accounts, autoRefresh, autoDrafts });
 });
 
 router.put('/tasks/sources', requireAuth, async (req, res) => {
@@ -135,6 +136,15 @@ router.put('/tasks/sources', requireAuth, async (req, res) => {
            COALESCE(preferences->'taskAutoRefresh','{}'::jsonb) || $2::jsonb, true)
        WHERE id = $1`,
       [userId, JSON.stringify(auto)]
+    );
+  }
+
+  // Background auto-drafts toggle.
+  if (req.body && typeof req.body.autoDrafts === 'object' && req.body.autoDrafts) {
+    await query(
+      `UPDATE users SET preferences =
+         jsonb_set(COALESCE(preferences,'{}'::jsonb), '{autoDrafts}', $2::jsonb, true) WHERE id = $1`,
+      [userId, JSON.stringify({ enabled: req.body.autoDrafts.enabled === true })]
     );
   }
   res.json({ ok: true, sources: clean });

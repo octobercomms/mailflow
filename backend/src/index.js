@@ -28,6 +28,7 @@ import aiRoutes from './routes/ai.js';
 import omiRoutes from './routes/omi.js';
 import tasksRoutes from './routes/tasks.js';
 import clientsRoutes from './routes/clients.js';
+import aiDraftsRoutes from './routes/aiDrafts.js';
 import categoriesRoutes from './routes/categories.js';
 import gtdRoutes from './routes/gtd.js';
 import carddavRouter from './routes/carddav.js';
@@ -181,6 +182,7 @@ app.use('/api', aiRoutes);
 app.use('/api', omiRoutes);
 app.use('/api', tasksRoutes);
 app.use('/api', clientsRoutes);
+app.use('/api', aiDraftsRoutes);
 app.use('/api', categoriesRoutes);
 // Mounted at the /api/gtd subtree (not bare /api) so gtd.js's router-level
 // requireAuth cannot intercept the unauthenticated /api/health and /api/version

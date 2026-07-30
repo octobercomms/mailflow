@@ -337,12 +337,15 @@ export const api = {
   tasksReorder: (ids) => request('POST', '/tasks/reorder', { ids }),
   tasksClearDone: () => request('POST', '/tasks/clear-done'),
   tasksSources: () => request('GET', '/tasks/sources'),
-  tasksSaveSources: (sources, autoRefresh) => request('PUT', '/tasks/sources', { sources, autoRefresh }),
+  tasksSaveSources: (sources, autoRefresh, autoDrafts) => request('PUT', '/tasks/sources', { sources, autoRefresh, autoDrafts }),
   tasksRefresh: () => request('POST', '/tasks/refresh'),
   clientsList: () => request('GET', '/clients'),
   clientBriefGet: (client) => request('GET', `/clients/${encodeURIComponent(client)}`),
   clientBriefSave: (client, brief) => request('PUT', `/clients/${encodeURIComponent(client)}`, { brief }),
   clientBriefRegenerate: (client, force) => request('POST', `/clients/${encodeURIComponent(client)}/regenerate`, { force: !!force }),
+  aiDraftFor: (messageId) => request('GET', `/ai-drafts/for/${encodeURIComponent(messageId)}`),
+  aiDraftGenerate: (messageId) => request('POST', `/ai-drafts/for/${encodeURIComponent(messageId)}`),
+  aiDraftSetStatus: (id, status) => request('PATCH', `/ai-drafts/${id}`, { status }),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.

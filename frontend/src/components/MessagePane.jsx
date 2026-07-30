@@ -36,6 +36,7 @@ import MessageHeaderModal from './MessageHeaderModal.jsx';
 import FolderIcon from './FolderIcon.jsx';
 import TodoistTaskModal from './TodoistTaskModal.jsx';
 import OmiPrPanel from './OmiPrPanel.jsx';
+import AiDraftPanel from './AiDraftPanel.jsx';
 
 function parseAddressField(raw) {
   try {
@@ -865,7 +866,7 @@ export default function MessagePane() {
     };
   }, [isMobile, setSelectedMessage, resetPaneSwipeStyles]);
 
-  const handleReply = (replyAll = false) => {
+  const handleReply = (replyAll = false, prefillBody = '') => {
     if (!message) return;
     const date = message.date ? new Date(message.date).toLocaleString() : '';
     const safeName = (message.from_name || '').replace(/[\r\n]+/g, ' ');
@@ -939,7 +940,7 @@ export default function MessagePane() {
       to: sender,
       cc: replyAll ? allRecipients : [],
       subject: reSubject,
-      body: '',
+      body: prefillBody || '',
       quotedBody: quotedText,
       quotedBodyHtml,
       inReplyTo: message.message_id,
@@ -2369,6 +2370,13 @@ ${bodyContent}
           <OmiPrPanel
             message={message}
             bodyText={body?.text || (body?.html ? body.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '')}
+          />
+          {/* Auto-draft: a suggested reply waiting for review. Hidden on my own sent
+              mail and when AI is off. "Edit & send" opens the composer prefilled. */}
+          <AiDraftPanel
+            message={message}
+            aiEnabled={aiStatus?.enabled && (accounts.find(a => a.id === message.account_id)?.email_address || '').toLowerCase() !== (message.from_email || '').toLowerCase()}
+            onUseDraft={(html) => handleReply(false, html)}
           />
         </div>
       )}
