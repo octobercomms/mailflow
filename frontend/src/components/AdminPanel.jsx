@@ -2194,6 +2194,79 @@ function OmiCard() {
   );
 }
 
+function ResearchCard() {
+  const { t } = useTranslation();
+  const [form, setForm] = useState({ provider: 'none', apiKey: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.researchAdminGet()
+      .then(r => { if (r.config) setForm({ provider: r.config.provider || 'none', apiKey: r.config.apiKey || '' }); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    setSaving(true); setError(''); setSaved(false);
+    try {
+      const apiKey = form.apiKey && form.apiKey !== '••••••••' ? form.apiKey : undefined;
+      await api.researchAdminSave(form.provider, apiKey);
+      setSaved(true);
+      setForm(f => ({ ...f, apiKey: f.apiKey ? '••••••••' : '' }));
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) { setError(e.message || 'Save failed'); }
+    finally { setSaving(false); }
+  }
+
+  const inp = { width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 13 };
+  const lbl = { fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 };
+
+  return (
+    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+          {t('admin.integrations.research.title', { defaultValue: 'Research — web search' })}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+        {t('admin.integrations.research.description', { defaultValue: 'Powers the approval-gated "Research this for me" action in Tasks. Add a Tavily or Brave Search key for web-verified answers with sources; without one, research answers from the model\'s own knowledge.' })}
+      </div>
+      {loading ? (
+        <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>…</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
+          <div>
+            <label style={lbl}>{t('admin.integrations.research.provider', { defaultValue: 'Search provider' })}</label>
+            <select style={inp} value={form.provider} onChange={e => setForm(f => ({ ...f, provider: e.target.value }))}>
+              <option value="none">None (model knowledge only)</option>
+              <option value="tavily">Tavily</option>
+              <option value="brave">Brave Search</option>
+            </select>
+          </div>
+          {form.provider !== 'none' && (
+            <div>
+              <label style={lbl}>{t('admin.integrations.research.apiKey', { defaultValue: 'API key' })}</label>
+              <input style={inp} type="password" value={form.apiKey} placeholder="API key"
+                onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} />
+            </div>
+          )}
+          {error && <div style={{ color: 'var(--red, #f87171)', fontSize: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={save} disabled={saving}
+              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
+            </button>
+            {saved && <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓ {t('common.saved', { defaultValue: 'Saved' })}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IntegrationsTab() {
   const { t } = useTranslation();
   const { setAccounts, setTodoistConnected } = useStore();
@@ -2824,6 +2897,7 @@ function IntegrationsTab() {
 
           <CardDavCard />
           <OmiCard />
+          <ResearchCard />
         </div>
       )}
     </div>

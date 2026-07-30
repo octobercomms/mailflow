@@ -23,6 +23,8 @@ export default function TasksView() {
   const [briefBusy, setBriefBusy] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
   const [assist, setAssist] = useState({});   // taskId -> { loading, text, error }
+  const [research, setResearch] = useState({}); // taskId -> { loading, answer, sources, webVerified, error }
+  const [canResearch, setCanResearch] = useState(false);
   const inputRefs = useRef(new Map());        // id -> textarea element
   const focusRef = useRef(null);              // { id, atEnd } to focus after render
   const saveTimers = useRef(new Map());       // id -> debounce timer
@@ -40,7 +42,19 @@ export default function TasksView() {
 
   useEffect(() => {
     api.tasksBriefGet().then(r => setBrief(r.brief || null)).catch(() => {});
+    api.researchStatus().then(() => setCanResearch(true)).catch(() => {});
   }, []);
+
+  // Approval-gated: only runs on this explicit click.
+  const runResearch = async (b) => {
+    setResearch(r => ({ ...r, [b.id]: { loading: true } }));
+    try {
+      const res = await api.research(b.text, '');
+      setResearch(r => ({ ...r, [b.id]: { answer: res.answer, sources: res.sources || [], webVerified: res.webVerified } }));
+    } catch (e) {
+      setResearch(r => ({ ...r, [b.id]: { error: e.message || 'Research failed' } }));
+    }
+  };
 
   const briefMe = async () => {
     setBriefBusy(true);
@@ -298,11 +312,40 @@ export default function TasksView() {
                       : assist[b.id].error ? <span style={{ color: 'var(--red, #e03131)' }}>{assist[b.id].error}</span>
                       : (<>
                           {assist[b.id].text}
-                          {assist[b.id].canDraft && assist[b.id].sourceRef && (
-                            <div style={{ marginTop: 8 }}>
+                          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {assist[b.id].canDraft && assist[b.id].sourceRef && (
                               <button onClick={() => window.open(`/?m=${encodeURIComponent(assist[b.id].sourceRef)}`, '_blank', 'noopener')} style={btnStyle(true)}>
                                 {t('tasksView.openToDraft', { defaultValue: 'Open email to draft a reply' })}
                               </button>
+                            )}
+                            {canResearch && !research[b.id] && (
+                              <button onClick={() => runResearch(b)} style={btnStyle(false)}>
+                                {t('tasksView.researchThis', { defaultValue: 'Research this for me' })}
+                              </button>
+                            )}
+                          </div>
+                          {research[b.id] && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                              {research[b.id].loading ? t('tasksView.researching', { defaultValue: 'Researching…' })
+                                : research[b.id].error ? <span style={{ color: 'var(--red, #e03131)' }}>{research[b.id].error}</span>
+                                : (<>
+                                    {!research[b.id].webVerified && (
+                                      <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                                        {t('tasksView.notWebVerified', { defaultValue: 'Not web-verified (no search provider configured) — from Claude\'s own knowledge.' })}
+                                      </div>
+                                    )}
+                                    <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{research[b.id].answer}</div>
+                                    {research[b.id].sources?.length > 0 && (
+                                      <div style={{ marginTop: 8 }}>
+                                        <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 3 }}>{t('tasksView.sources', { defaultValue: 'Sources' })}</div>
+                                        {research[b.id].sources.map((s, i) => (
+                                          <div key={i} style={{ fontSize: 12, marginBottom: 2 }}>
+                                            [{i + 1}] <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{s.title || s.url}</a>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </>)}
                             </div>
                           )}
                         </>)}

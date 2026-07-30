@@ -349,6 +349,10 @@ export const api = {
   tasksBriefGet: () => request('GET', '/tasks/brief'),
   tasksBriefGenerate: () => request('POST', '/tasks/brief'),
   taskAssist: (id) => request('POST', `/tasks/${id}/assist`),
+  researchStatus: () => request('GET', '/research/status'),
+  research: (question, context) => request('POST', '/research', { question, context }),
+  researchAdminGet: () => request('GET', '/admin/research'),
+  researchAdminSave: (provider, apiKey) => request('PATCH', '/admin/research', { provider, apiKey }),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.
