@@ -329,6 +329,13 @@ export const api = {
   omiLogCoverage: (payload) => request('POST', '/omi/pr/editorial-log', payload),
   omiAdminGet: () => request('GET', '/admin/omi'),
   omiAdminSave: (config) => request('PATCH', '/admin/omi', config),
+  // Native task list (headings + checkbox tasks).
+  tasksList: () => request('GET', '/tasks'),
+  taskCreate: (payload) => request('POST', '/tasks', payload),
+  taskUpdate: (id, patch) => request('PATCH', `/tasks/${id}`, patch),
+  taskDelete: (id) => request('DELETE', `/tasks/${id}`),
+  tasksReorder: (ids) => request('POST', '/tasks/reorder', { ids }),
+  tasksClearDone: () => request('POST', '/tasks/clear-done'),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.

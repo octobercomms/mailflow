@@ -12,6 +12,8 @@ import { buildKeyMap, buildModKeyMap, getEffectiveShortcuts, getGroupedActions, 
 import Sidebar from './Sidebar.jsx';
 import MessageList from './MessageList.jsx';
 import MessagePane from './MessagePane.jsx';
+import TasksView from './TasksView.jsx';
+import FunctionRail from './FunctionRail.jsx';
 import GtdSidebarContent from './GtdSidebarContent.jsx';
 import NotificationToasts from './NotificationToasts.jsx';
 import CommandPalette from './CommandPalette.jsx';
@@ -131,6 +133,8 @@ export default function MailApp() {
 
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Top-level function switch (Gmail-style left rail): 'mail' | 'tasks'.
+  const [topView, setTopView] = useState('mail');
   const isMobile = useMobile();
   const sidebarDragRef = useRef(null);
   const sidebarResizeRef = useRef(null);
@@ -718,7 +722,11 @@ export default function MailApp() {
       overflow: 'hidden',
       background: 'var(--bg-primary)',
     }}>
-      {isMobile ? (
+      {/* Gmail-style function rail: switch between Mail and Tasks. */}
+      <FunctionRail view={topView} onChange={setTopView} isMobile={isMobile} />
+      {topView === 'tasks' ? (
+        <TasksView />
+      ) : isMobile ? (
         <>
           {/* Backdrop — covers full screen including status bar area */}
           {mobileSidebarOpen && (
