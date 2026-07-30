@@ -346,6 +346,9 @@ export const api = {
   aiDraftFor: (messageId) => request('GET', `/ai-drafts/for/${encodeURIComponent(messageId)}`),
   aiDraftGenerate: (messageId) => request('POST', `/ai-drafts/for/${encodeURIComponent(messageId)}`),
   aiDraftSetStatus: (id, status) => request('PATCH', `/ai-drafts/${id}`, { status }),
+  tasksBriefGet: () => request('GET', '/tasks/brief'),
+  tasksBriefGenerate: () => request('POST', '/tasks/brief'),
+  taskAssist: (id) => request('POST', `/tasks/${id}/assist`),
   // GTD "done": strip the row's label(s) for these states, mark read, archive the INBOX
   // copy. id is the rail head's row id (its label-folder copy); the server resolves the
   // INBOX copy from the shared Message-ID.

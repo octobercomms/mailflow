@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../services/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { refreshUserTasks, positionAfter } from '../services/taskRefresh.js';
+import { generateDailyBrief, getCachedBrief, generateTaskAssist } from '../services/dailyBrief.js';
 
 // Native task list — an ordered sequence of blocks (headings + checkbox tasks) per
 // user. Edited like a restricted Notion outline; the AI "refresh from folder" and the
@@ -162,6 +163,31 @@ router.post('/tasks/refresh', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'No task folders configured. Choose which accounts and folders to read in Task settings.' });
     }
     res.status(err.status || 502).json({ error: err.message || 'Refresh failed' });
+  }
+});
+
+// ── Daily brief ───────────────────────────────────────────────────────────────
+router.get('/tasks/brief', requireAuth, async (req, res) => {
+  const cached = await getCachedBrief(uid(req));
+  res.json({ brief: cached });
+});
+
+router.post('/tasks/brief', requireAuth, async (req, res) => {
+  try {
+    const { brief, open, drafts } = await generateDailyBrief(uid(req));
+    res.json({ ok: true, brief, open, drafts });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message || 'Brief failed' });
+  }
+});
+
+// ── Per-task "how to tackle this" assist ──────────────────────────────────────
+router.post('/tasks/:id/assist', requireAuth, async (req, res) => {
+  try {
+    const result = await generateTaskAssist(uid(req), req.params.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message || 'Assist failed' });
   }
 });
 

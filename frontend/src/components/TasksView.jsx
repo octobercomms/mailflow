@@ -19,6 +19,10 @@ export default function TasksView() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [brief, setBrief] = useState(null);   // { text, date, stale } | null
+  const [briefBusy, setBriefBusy] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(true);
+  const [assist, setAssist] = useState({});   // taskId -> { loading, text, error }
   const inputRefs = useRef(new Map());        // id -> textarea element
   const focusRef = useRef(null);              // { id, atEnd } to focus after render
   const saveTimers = useRef(new Map());       // id -> debounce timer
@@ -33,6 +37,32 @@ export default function TasksView() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    api.tasksBriefGet().then(r => setBrief(r.brief || null)).catch(() => {});
+  }, []);
+
+  const briefMe = async () => {
+    setBriefBusy(true);
+    try {
+      const r = await api.tasksBriefGenerate();
+      setBrief({ text: r.brief, date: null, stale: false });
+      setBriefOpen(true);
+    } catch (e) { setError(e.message || 'Brief failed'); }
+    finally { setBriefBusy(false); }
+  };
+
+  const toggleAssist = async (b) => {
+    const cur = assist[b.id];
+    if (cur && (cur.text || cur.loading)) { setAssist(a => ({ ...a, [b.id]: null })); return; }
+    setAssist(a => ({ ...a, [b.id]: { loading: true } }));
+    try {
+      const r = await api.taskAssist(b.id);
+      setAssist(a => ({ ...a, [b.id]: { text: r.suggestion, canDraft: r.canDraft, sourceRef: r.sourceRef } }));
+    } catch (e) {
+      setAssist(a => ({ ...a, [b.id]: { error: e.message || 'Failed' } }));
+    }
+  };
 
   // Focus a freshly-created / navigated-to block after render.
   useEffect(() => {
@@ -154,6 +184,9 @@ export default function TasksView() {
             </svg>
             {refreshing ? t('tasksView.refreshing', { defaultValue: 'Reading mail…' }) : t('tasksView.refresh', { defaultValue: 'Refresh from mail' })}
           </button>
+          <button onClick={briefMe} disabled={briefBusy} style={btnStyle(false)} title={t('tasksView.briefHint', { defaultValue: 'Get your morning brief' })}>
+            {briefBusy ? t('tasksView.briefing', { defaultValue: 'Briefing…' }) : t('tasksView.briefMe', { defaultValue: 'Brief me' })}
+          </button>
           <button onClick={() => setShowSettings(s => !s)} style={btnStyle(false)} title={t('tasksView.settings', { defaultValue: 'Task settings' })}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-3px' }}>
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -169,6 +202,25 @@ export default function TasksView() {
 
         {refreshMsg && <div style={{ color: 'var(--accent)', fontSize: 12.5, marginBottom: 12 }}>{refreshMsg}</div>}
         {error && <div style={{ color: 'var(--red, #e03131)', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+
+        {brief && brief.text && briefOpen && (
+          <div style={{
+            marginBottom: 18, padding: '14px 16px', borderRadius: 12,
+            background: 'var(--accent-dim, rgba(0,0,0,0.03))', border: '1px solid var(--border-subtle)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+              </svg>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>
+                {t('tasksView.today', { defaultValue: 'Your brief' })}
+                {brief.stale && <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}> · {t('tasksView.briefStale', { defaultValue: 'from an earlier day — “Brief me” to refresh' })}</span>}
+              </span>
+              <button onClick={() => setBriefOpen(false)} style={rowDel} title="Hide">×</button>
+            </div>
+            <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.6, color: 'var(--text-primary)' }}>{brief.text}</div>
+          </div>
+        )}
 
         {showSettings && <TaskSettings onClose={() => setShowSettings(false)} />}
 
@@ -204,36 +256,58 @@ export default function TasksView() {
                 <button onClick={() => removeBlock(b, blocks[idx - 1]?.id)} style={rowDel} title="Remove">×</button>
               </div>
             ) : (
-              <div key={b.id} className="task-row"
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '5px 0', borderRadius: 6 }}>
-                <button onClick={() => toggleDone(b)} aria-label="toggle"
-                  style={{
-                    marginTop: 3, width: 17, height: 17, flexShrink: 0, borderRadius: 5, cursor: 'pointer',
-                    border: `1.5px solid ${b.done ? 'var(--accent)' : 'var(--border)'}`,
-                    background: b.done ? 'var(--accent)' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-                  }}>
-                  {b.done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                </button>
-                <textarea
-                  ref={setRef(b.id)}
-                  rows={1}
-                  value={b.text}
-                  onChange={e => onText(b.id, e.target.value, e.target)}
-                  onKeyDown={e => onKeyDown(e, b, idx)}
-                  placeholder={t('tasksView.taskPh', { defaultValue: 'Task…' })}
-                  style={{
-                    flex: 1, border: 'none', outline: 'none', background: 'transparent', resize: 'none',
-                    fontSize: 14.5, lineHeight: 1.45, padding: '1px 0', fontFamily: 'inherit', overflow: 'hidden',
-                    color: b.done ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                    textDecoration: b.done ? 'line-through' : 'none',
-                  }}
-                />
-                {b.source === 'ai' && b.source_ref && (
-                  <button onClick={() => openSource(b)} title={t('tasksView.openEmail', { defaultValue: 'Open source email' })}
-                    style={{ marginTop: 2, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', flexShrink: 0, padding: '0 2px', fontSize: 12 }}>✉</button>
+              <div key={b.id}>
+                <div className="task-row"
+                  style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '5px 0', borderRadius: 6 }}>
+                  <button onClick={() => toggleDone(b)} aria-label="toggle"
+                    style={{
+                      marginTop: 3, width: 17, height: 17, flexShrink: 0, borderRadius: 5, cursor: 'pointer',
+                      border: `1.5px solid ${b.done ? 'var(--accent)' : 'var(--border)'}`,
+                      background: b.done ? 'var(--accent)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                    }}>
+                    {b.done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </button>
+                  <textarea
+                    ref={setRef(b.id)}
+                    rows={1}
+                    value={b.text}
+                    onChange={e => onText(b.id, e.target.value, e.target)}
+                    onKeyDown={e => onKeyDown(e, b, idx)}
+                    placeholder={t('tasksView.taskPh', { defaultValue: 'Task…' })}
+                    style={{
+                      flex: 1, border: 'none', outline: 'none', background: 'transparent', resize: 'none',
+                      fontSize: 14.5, lineHeight: 1.45, padding: '1px 0', fontFamily: 'inherit', overflow: 'hidden',
+                      color: b.done ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                      textDecoration: b.done ? 'line-through' : 'none',
+                    }}
+                  />
+                  <button onClick={() => toggleAssist(b)} title={t('tasksView.assist', { defaultValue: 'How should I tackle this?' })}
+                    style={{ marginTop: 1, background: 'none', border: 'none', cursor: 'pointer', color: assist[b.id] ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, padding: '0 2px', opacity: 0.75 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
+                  </button>
+                  {b.source === 'ai' && b.source_ref && (
+                    <button onClick={() => openSource(b)} title={t('tasksView.openEmail', { defaultValue: 'Open source email' })}
+                      style={{ marginTop: 2, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', flexShrink: 0, padding: '0 2px', fontSize: 12 }}>✉</button>
+                  )}
+                  <button onClick={() => removeBlock(b, blocks[idx - 1]?.id)} style={rowDel} title="Remove">×</button>
+                </div>
+                {assist[b.id] && (
+                  <div style={{ margin: '2px 0 8px 27px', padding: '9px 12px', borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                    {assist[b.id].loading ? t('tasksView.thinking', { defaultValue: 'Thinking…' })
+                      : assist[b.id].error ? <span style={{ color: 'var(--red, #e03131)' }}>{assist[b.id].error}</span>
+                      : (<>
+                          {assist[b.id].text}
+                          {assist[b.id].canDraft && assist[b.id].sourceRef && (
+                            <div style={{ marginTop: 8 }}>
+                              <button onClick={() => window.open(`/?m=${encodeURIComponent(assist[b.id].sourceRef)}`, '_blank', 'noopener')} style={btnStyle(true)}>
+                                {t('tasksView.openToDraft', { defaultValue: 'Open email to draft a reply' })}
+                              </button>
+                            </div>
+                          )}
+                        </>)}
+                  </div>
                 )}
-                <button onClick={() => removeBlock(b, blocks[idx - 1]?.id)} style={rowDel} title="Remove">×</button>
               </div>
             ))}
             <button onClick={() => addBlock('task', blocks[blocks.length - 1]?.id)}

@@ -1,6 +1,7 @@
 import { query } from './db.js';
 import { refreshUserTasks } from './taskRefresh.js';
 import { runDraftSweep } from './draftWriter.js';
+import { generateDailyBrief } from './dailyBrief.js';
 
 // Daily auto-refresh of the Tasks hub. Polls every few minutes; for each user who
 // has opted in (preferences.taskAutoRefresh.enabled) and has task folders set, runs
@@ -64,6 +65,9 @@ async function tick() {
     } catch (e) {
       if (e.code !== 'NO_SOURCES') console.warn(`[task-scheduler] ${u.id}: ${e.message}`);
     }
+    // Freshen the morning brief off the just-refreshed list, so it's waiting.
+    try { await generateDailyBrief(u.id); }
+    catch (e) { console.warn(`[task-scheduler] brief ${u.id}: ${e.message}`); }
   }
 }
 
