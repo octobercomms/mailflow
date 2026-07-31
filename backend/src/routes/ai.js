@@ -249,9 +249,11 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
   if (!acct.rows.length) return res.status(404).json({ error: 'Account not found' });
 
   const legend = parseLegend(await loadLegendText());
+  const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [req.session.userId]);
+  const ownerNames = prefRow.rows[0]?.preferences?.ownerNames || '';
   try {
     const { tasks, scanned, capped } = await generateFolderTasks({
-      account: acct.rows[0], folder, cfg, legend, imapManager,
+      account: acct.rows[0], folder, cfg, legend, imapManager, ownerNames,
     });
     res.json({ tasks, scanned, capped });
   } catch (err) {

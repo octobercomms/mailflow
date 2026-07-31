@@ -100,9 +100,10 @@ export async function aiComplete(cfg, messages, { timeoutMs = 120000 } = {}) {
 // a grouped/prioritized task list, and returns normalized tasks. `refs` is the set
 // of message-ids currently present in the folder — the hub uses it to auto-complete
 // tasks whose source email has since been filed elsewhere.
-export async function generateFolderTasks({ account, folder, cfg, legend, imapManager, extraContext = '' }) {
+export async function generateFolderTasks({ account, folder, cfg, legend, imapManager, extraContext = '', ownerNames = '' }) {
   const msgResult = await query(
-    `SELECT id, uid, message_id, subject, from_name, from_email, snippet, body_text, date, is_read
+    `SELECT id, uid, message_id, subject, from_name, from_email, snippet, body_text, date, is_read,
+            to_addresses, cc_addresses
        FROM messages
       WHERE account_id = $1 AND folder = $2
       ORDER BY date DESC
@@ -168,14 +169,38 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     if (days < 400) return `${Math.round(days / 30)} months ago`;
     return `${(days / 365).toFixed(1)} years ago`;
   };
+
+  // Was the owner a direct recipient (To), only copied (Cc), or neither (received via
+  // a group/label)? Lets the model weight "asked of me" vs "just kept in the loop".
+  const ownerAddrs = new Set();
+  if (account.email_address) ownerAddrs.add(account.email_address.toLowerCase());
+  { let aliases = account.aliases;
+    if (typeof aliases === 'string') { try { aliases = JSON.parse(aliases); } catch { aliases = []; } }
+    for (const a of aliases || []) if (a?.email) ownerAddrs.add(a.email.toLowerCase()); }
+  const parseAddrs = (v) => { if (Array.isArray(v)) return v; try { return JSON.parse(v || '[]'); } catch { return []; } };
+  const recipientRole = (m) => {
+    const to = parseAddrs(m.to_addresses).map(x => (x.email || '').toLowerCase());
+    const cc = parseAddrs(m.cc_addresses).map(x => (x.email || '').toLowerCase());
+    if (to.some(e => ownerAddrs.has(e))) return 'To';
+    if (cc.some(e => ownerAddrs.has(e))) return 'Cc';
+    return '-';
+  };
+
   const lines = emails.map((m, i) => {
     const from = clip(m.from_name || m.from_email || 'unknown', 80);
     const subject = clip(m.subject, 160) || '(no subject)';
     const when = m.date ? `${new Date(m.date).toISOString().slice(0, 10)} (${ageLabel(m.date)})` : '';
     const bodyText = clip(m.body_text || m.snippet, 2000);
     const hint = hintFor(m);
-    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''}${hint ? ` — CLIENT: ${hint}` : ''}\n${bodyText}`;
+    return `[${i + 1}] From: ${from} — Subject: ${subject}${when ? ` — ${when}` : ''} — [${recipientRole(m)}]${hint ? ` — CLIENT: ${hint}` : ''}\n${bodyText}`;
   }).join('\n\n');
+
+  const ownerNamesList = String(ownerNames || '').split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+  const ownerBlock =
+    `WHO YOU ARE: you are ${account.email_address}` +
+    (ownerNamesList.length ? ` — also referred to as ${ownerNamesList.join(', ')}` : '') +
+    `. Each email is tagged with your role on it: [To] = you were a direct recipient, ` +
+    `[Cc] = you were only copied in, [-] = you were not a named recipient (it reached you via a group/label).\n\n`;
 
   const legendBlock = legend.length
     ? 'KNOWN CLIENTS — group every task under ONE of these EXACT names. Match each email to a client using ' +
@@ -213,6 +238,16 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     'either omit the item or frame it as a possibly-stale follow-up ("Check whether … is still needed") — do not ' +
     'present a lapsed deadline as urgent. Emails more than about a year old are very likely stale leftovers — include ' +
     'one only if it clearly describes an action still genuinely open today; otherwise skip it. ' +
+    'WHO IS BEING ASKED. Each email is tagged [To], [Cc], or [-] for the user\'s role on it (see WHO YOU ARE). ' +
+    'Weigh this: when the user is on [To], or is named/addressed in the body ("Daniel, can you…"), treat it as a ' +
+    'normal ask. When the user is only [Cc] or [-] AND the body does not name or ask them specifically, it is most ' +
+    'likely FYI / kept-in-the-loop — do NOT create a task for it UNLESS it is clearly something the user owns ' +
+    'regardless of being asked by name: an automated or system alert (a failed or failing payment, a card/Stripe/' +
+    'billing problem, an expiring or expired certificate/domain/subscription, a webhook or integration breaking, an ' +
+    'error/downtime report, a renewal or account-suspension notice), or an action only the user can take. Those ARE ' +
+    'the user\'s job even though nobody asked by name — include them. So: system/automated alerts → include even on ' +
+    '[Cc]/[-]; ordinary human emails where the user was merely copied and not addressed → skip unless they plainly ' +
+    'need the user\'s action. When genuinely unsure on a Cc-only human email, prefer skipping over adding noise. ' +
     'GROUPING: prefer the KNOWN CLIENTS names when an email matches one, but you are NOT limited to that list — when ' +
     'an email clearly belongs to another client, company, or project, infer a concise, stable, title-cased group name ' +
     'from the sender domain and content and create it. Never split by individual person or city (roll those into the ' +
@@ -230,6 +265,7 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
   const user = `TODAY'S DATE IS ${today}. Judge every email's recency and deadlines against this date.\n\n` +
     `Here are the emails in the "${folder}" folder for ${account.email_address} (newest first). ` +
     `Full message bodies are included — read them, don't just skim the subject. Each email's own date is shown after its subject.\n\n` +
+    `${ownerBlock}` +
     `${extraContext ? extraContext + '\n\n' : ''}` +
     `${legendBlock}` +
     `${lines}\n\n` +

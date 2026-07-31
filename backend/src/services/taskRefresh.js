@@ -75,6 +75,7 @@ async function runRefresh(userId, opts = {}) {
 
   const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [userId]);
   const sources = prefRow.rows[0]?.preferences?.taskSources || {};
+  const ownerNames = prefRow.rows[0]?.preferences?.ownerNames || '';
   const accts = await query('SELECT * FROM email_accounts WHERE user_id = $1 AND enabled = true', [userId]);
 
   const jobs = [];
@@ -95,7 +96,7 @@ async function runRefresh(userId, opts = {}) {
   for (const job of jobs) {
     try {
       const { tasks, refs } = await generateFolderTasks({
-        account: job.account, folder: job.folder, cfg, legend, imapManager, extraContext: briefBlock,
+        account: job.account, folder: job.folder, cfg, legend, imapManager, extraContext: briefBlock, ownerNames,
       });
       const label = job.account.name || job.account.email_address;
       for (const tk of tasks) tk.account = label;

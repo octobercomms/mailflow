@@ -93,6 +93,7 @@ router.get('/tasks/sources', requireAuth, async (req, res) => {
   const auto = prefs.taskAutoRefresh || {};
   const autoRefresh = { enabled: auto.enabled === true, hour: Number.isInteger(auto.hour) ? auto.hour : 8, tz: auto.tz || null };
   const autoDrafts = { enabled: prefs.autoDrafts?.enabled === true };
+  const ownerNames = typeof prefs.ownerNames === 'string' ? prefs.ownerNames : '';
   const accounts = [];
   for (const a of accts.rows) {
     const folders = (await query(
@@ -100,7 +101,7 @@ router.get('/tasks/sources', requireAuth, async (req, res) => {
     )).rows;
     accounts.push({ id: a.id, email: a.email_address, folders });
   }
-  res.json({ sources, accounts, autoRefresh, autoDrafts });
+  res.json({ sources, accounts, autoRefresh, autoDrafts, ownerNames });
 });
 
 router.put('/tasks/sources', requireAuth, async (req, res) => {
@@ -146,6 +147,15 @@ router.put('/tasks/sources', requireAuth, async (req, res) => {
       `UPDATE users SET preferences =
          jsonb_set(COALESCE(preferences,'{}'::jsonb), '{autoDrafts}', $2::jsonb, true) WHERE id = $1`,
       [userId, JSON.stringify({ enabled: req.body.autoDrafts.enabled === true })]
+    );
+  }
+
+  // Owner name(s) — helps the digest tell "asked of me" from "just Cc'd".
+  if (typeof req.body?.ownerNames === 'string') {
+    await query(
+      `UPDATE users SET preferences =
+         jsonb_set(COALESCE(preferences,'{}'::jsonb), '{ownerNames}', to_jsonb($2::text), true) WHERE id = $1`,
+      [userId, req.body.ownerNames.slice(0, 300)]
     );
   }
   res.json({ ok: true, sources: clean });

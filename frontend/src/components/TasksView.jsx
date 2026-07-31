@@ -548,6 +548,7 @@ function TaskSettings({ embedded }) {
   const [legend, setLegend] = useState('');
   const [auto, setAuto] = useState({ enabled: false, hour: 8, tz: null });
   const [autoDrafts, setAutoDrafts] = useState({ enabled: false });
+  const [ownerNames, setOwnerNames] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -563,6 +564,7 @@ function TaskSettings({ embedded }) {
         setSources(s.sources || {});
         setAuto({ enabled: !!s.autoRefresh?.enabled, hour: Number.isInteger(s.autoRefresh?.hour) ? s.autoRefresh.hour : 8, tz: s.autoRefresh?.tz || null });
         setAutoDrafts({ enabled: !!s.autoDrafts?.enabled });
+        setOwnerNames(s.ownerNames || '');
         setLegend(l.legend || '');
       } catch (e) { setErr(e.message || 'Failed to load settings'); }
       finally { setLoading(false); }
@@ -582,7 +584,7 @@ function TaskSettings({ embedded }) {
     setSaving(true); setErr(''); setSaved(false);
     try {
       const autoPayload = { ...auto, tz: auto.tz || browserTz || null };
-      await Promise.all([api.tasksSaveSources(sources, autoPayload, autoDrafts), api.aiSetTaskLegend(legend)]);
+      await Promise.all([api.tasksSaveSources(sources, autoPayload, autoDrafts, ownerNames), api.aiSetTaskLegend(legend)]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) { setErr(e.message || 'Save failed'); }
@@ -608,6 +610,26 @@ function TaskSettings({ embedded }) {
         <>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
             {t('tasksView.settingsHelp', { defaultValue: 'Tick each account you want read, then choose its to-do folder(s). Refresh turns those emails into tasks; when you file an email out of the folder, its task auto-completes.' })}
+          </div>
+
+          {/* Owner identity — lets the digest tell "asked of me" from "just Cc'd". */}
+          <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+              {t('tasksView.ownerTitle', { defaultValue: 'Your name(s)' })}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.5 }}>
+              {t('tasksView.ownerHelp', { defaultValue: 'How you\'re addressed in emails (e.g. "Daniel, Daniel Nelson, Dan"). Used to weigh whether an email actually asks you to do something, or you were only copied in. System alerts (a failed payment, an expiring cert) are still picked up even when nobody asks by name.' })}
+            </div>
+            <input
+              value={ownerNames}
+              onChange={e => setOwnerNames(e.target.value)}
+              placeholder={t('tasksView.ownerPh', { defaultValue: 'Daniel, Daniel Nelson, Dan' })}
+              style={{
+                width: '100%', boxSizing: 'border-box', fontSize: 13, padding: '7px 10px',
+                border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-primary)',
+                color: 'var(--text-primary)', fontFamily: 'inherit',
+              }}
+            />
           </div>
 
           {accounts.length === 0 && <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>No accounts.</div>}
