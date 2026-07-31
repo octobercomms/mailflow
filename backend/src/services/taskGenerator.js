@@ -103,7 +103,7 @@ export async function aiComplete(cfg, messages, { timeoutMs = 120000 } = {}) {
 export async function generateFolderTasks({ account, folder, cfg, legend, imapManager, extraContext = '', ownerNames = '' }) {
   const msgResult = await query(
     `SELECT id, uid, message_id, subject, from_name, from_email, snippet, body_text, date, is_read,
-            to_addresses, cc_addresses
+            to_addresses, cc_addresses, thread_key
        FROM messages
       WHERE account_id = $1 AND folder = $2
       ORDER BY date DESC
@@ -111,9 +111,42 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
     [account.id, folder, AI_TASKS_MAX_EMAILS + 1]
   );
   const capped = msgResult.rows.length > AI_TASKS_MAX_EMAILS;
-  const emails = msgResult.rows.slice(0, AI_TASKS_MAX_EMAILS);
+  let emails = msgResult.rows.slice(0, AI_TASKS_MAX_EMAILS);
+  if (emails.length === 0) return { tasks: [], scanned: 0, capped: false, refs: new Set() };
+
+  // The owner's addresses (account + aliases) — used both for To/Cc weighting and to
+  // detect "already replied".
+  const ownerAddrs = new Set();
+  if (account.email_address) ownerAddrs.add(account.email_address.toLowerCase());
+  { let aliases = account.aliases;
+    if (typeof aliases === 'string') { try { aliases = JSON.parse(aliases); } catch { aliases = []; } }
+    for (const a of aliases || []) if (a?.email) ownerAddrs.add(a.email.toLowerCase()); }
+
+  // Drop emails the owner has ALREADY replied to: if a later message exists in the same
+  // thread from one of the owner's addresses, the ball is no longer in their court, so
+  // there's no task. Excluding these from `refs` also auto-completes any existing task
+  // in the hub whose source email has now been answered (even while it sits in-folder).
+  const threadKeys = [...new Set(emails.map(m => m.thread_key).filter(Boolean))];
+  const ownerLastByThread = new Map();
+  if (threadKeys.length && ownerAddrs.size) {
+    const r = await query(
+      `SELECT thread_key, MAX(date) AS last_owner
+         FROM messages
+        WHERE account_id = $1 AND thread_key = ANY($2) AND lower(from_email) = ANY($3)
+        GROUP BY thread_key`,
+      [account.id, threadKeys, [...ownerAddrs]]
+    );
+    for (const row of r.rows) ownerLastByThread.set(row.thread_key, new Date(row.last_owner).getTime());
+  }
+  const alreadyReplied = (m) => {
+    if (!m.thread_key || !m.date) return false;
+    const last = ownerLastByThread.get(m.thread_key);
+    return last != null && last > new Date(m.date).getTime();
+  };
+  emails = emails.filter(m => !alreadyReplied(m));
+  if (emails.length === 0) return { tasks: [], scanned: 0, capped, refs: new Set() };
+
   const refs = new Set(emails.map(m => m.message_id).filter(Boolean));
-  if (emails.length === 0) return { tasks: [], scanned: 0, capped: false, refs };
 
   // Fetch real bodies on demand. Gmail is indexed with fetchBody:false, so most
   // rows only carry a short snippet — feeding that to the model is why an unhydrated
@@ -172,11 +205,7 @@ export async function generateFolderTasks({ account, folder, cfg, legend, imapMa
 
   // Was the owner a direct recipient (To), only copied (Cc), or neither (received via
   // a group/label)? Lets the model weight "asked of me" vs "just kept in the loop".
-  const ownerAddrs = new Set();
-  if (account.email_address) ownerAddrs.add(account.email_address.toLowerCase());
-  { let aliases = account.aliases;
-    if (typeof aliases === 'string') { try { aliases = JSON.parse(aliases); } catch { aliases = []; } }
-    for (const a of aliases || []) if (a?.email) ownerAddrs.add(a.email.toLowerCase()); }
+  // ownerAddrs is computed above (also used for reply detection).
   const parseAddrs = (v) => { if (Array.isArray(v)) return v; try { return JSON.parse(v || '[]'); } catch { return []; } };
   const recipientRole = (m) => {
     const to = parseAddrs(m.to_addresses).map(x => (x.email || '').toLowerCase());
