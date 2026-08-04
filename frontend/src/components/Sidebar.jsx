@@ -315,7 +315,7 @@ export default function Sidebar() {
     return () => document.removeEventListener('dragend', clear);
   }, []);
 
-  const handleMsgDrop = useCallback((e, targetFolder) => {
+  const handleMsgDrop = useCallback((e, targetFolder, targetAccountId) => {
     e.preventDefault();
     setMsgDragTarget(null);
     const raw = e.dataTransfer.getData('application/x-mailflow-message');
@@ -325,10 +325,48 @@ export default function Sidebar() {
     const state = useStore.getState();
     const pool = [...state.messages, ...state.searchResults];
     const ids = payload.messageIds ?? [payload.messageId];
+    // Skip messages already sitting in the exact drop target (same account AND folder).
+    const atTarget = (m) => m.folder === targetFolder && (targetAccountId ? m.account_id === targetAccountId : true);
     const msgs = ids
       .map(id => pool.find(m => m.id === id))
-      .filter(m => m != null && m.folder !== targetFolder);
+      .filter(m => m != null && !atTarget(m));
     if (!msgs.length) return;
+
+    // Cross-account drop: the target account differs from the message's account. Reuse the
+    // per-message cross-account move (no bulk endpoint) with optimistic removal + rollback,
+    // no undo timer — mirrors the right-click "Move to account". Same-account drops keep the
+    // fast bulk-move-with-undo path below.
+    const crossMsgs = targetAccountId ? msgs.filter(m => m.account_id !== targetAccountId) : [];
+    if (crossMsgs.length) {
+      const destAccount = (state.accounts || []).find(a => a.id === targetAccountId);
+      const destName = destAccount?.email || destAccount?.name || 'account';
+      crossMsgs.forEach(msg => { state.removeMessage(msg.id); if (!msg.is_read) state.decrementUnread(msg.account_id); });
+      Promise.allSettled(crossMsgs.map(m => api.moveToAccount(m.id, targetAccountId, targetFolder)))
+        .then(results => {
+          const s = useStore.getState();
+          const failed = crossMsgs.filter((_, i) => results[i].status === 'rejected');
+          if (failed.length) {
+            s.restoreMessages(failed);
+            failed.forEach(m => { if (!m.is_read) s.incrementUnread(m.account_id); });
+            s.addNotification({ title: t('messageList.bulkMoved.failTitle'), body: t('messageList.bulkMoved.failBody', { count: failed.length }) });
+          }
+          api.getUnreadCounts().then(c => s.setUnreadCounts(c)).catch(() => {});
+        });
+      state.addNotification({ title: t('messageList.bulkMoved.title', { count: crossMsgs.length }), body: destName });
+      // If some dragged messages were same-account, fall through to move those too.
+      const sameMsgs = msgs.filter(m => m.account_id === targetAccountId);
+      if (!sameMsgs.length) return;
+      return bulkMoveSameAccount(sameMsgs, targetFolder);
+    }
+
+    return bulkMoveSameAccount(msgs, targetFolder);
+  }, [t]);
+
+  // Same-account bulk move with optimistic removal + 4.5s undo (extracted so the drop
+  // handler can call it for both the plain case and the same-account remainder of a
+  // mixed cross-account drop).
+  const bulkMoveSameAccount = useCallback((msgs, targetFolder) => {
+    const state = useStore.getState();
     msgs.forEach(msg => {
       state.removeMessage(msg.id);
       if (!msg.is_read) state.decrementUnread(msg.account_id);
@@ -928,7 +966,7 @@ export default function Sidebar() {
                     }}
                     onDrop={e => {
                       if (e.dataTransfer.types.includes('application/x-mailflow-message')) {
-                        handleMsgDrop(e, path);
+                        handleMsgDrop(e, path, accountId);
                         return;
                       }
                       e.preventDefault();
@@ -1116,7 +1154,8 @@ export default function Sidebar() {
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: sidebarCollapsed ? '8px' : '7px 10px',
                   borderRadius: 7, cursor: 'pointer',
-                  background: isSelected && selectedFolder === 'INBOX'
+                  background: (msgDragTarget === `${account.id}:INBOX`) ? 'var(--accent-dim)'
+                    : isSelected && selectedFolder === 'INBOX'
                     ? 'var(--bg-hover)' : 'transparent',
                   transition: 'background 0.1s',
                   justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
@@ -1128,6 +1167,17 @@ export default function Sidebar() {
                 onMouseLeave={e => {
                   if (!(isSelected && selectedFolder === 'INBOX'))
                     e.currentTarget.style.background = 'transparent';
+                }}
+                onDragOver={e => {
+                  if (e.dataTransfer.types.includes('application/x-mailflow-message')) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    setMsgDragTarget(`${account.id}:INBOX`);
+                  }
+                }}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMsgDragTarget(null); }}
+                onDrop={e => {
+                  if (e.dataTransfer.types.includes('application/x-mailflow-message')) { handleMsgDrop(e, 'INBOX', account.id); }
                 }}
                 onClick={selectInbox}
                 onContextMenu={!sidebarCollapsed ? (e) => openAccountCtxMenu(e, account) : undefined}
@@ -1279,7 +1329,7 @@ export default function Sidebar() {
                         onContextMenu={e => openFolderCtxMenu(e, account.id, folder)}
                         onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setMsgDragTarget(`${account.id}:${folder.path}`); }}
                         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMsgDragTarget(null); }}
-                        onDrop={e => handleMsgDrop(e, folder.path)}
+                        onDrop={e => handleMsgDrop(e, folder.path, account.id)}
                       >
                         {/* Chevron toggle for parent folders; invisible spacer for leaf folders to align icons */}
                         {hasChildren ? (

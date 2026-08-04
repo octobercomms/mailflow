@@ -21,6 +21,30 @@ import { createLatestRequest } from '../utils/latestRequest.js';
 import { pendingMarkReadMap, completedMarkReadMap, setPending } from '../utils/pendingReads.js';
 import { applyDeleteGuard, clearDeleteGuard, clearPendingDelete, setCompletedDelete, setPendingDelete } from '../utils/pendingDeletes.js';
 
+// Patch a same-ordered list of messages in place from a fresh fetch: update the mutable
+// per-row fields, but KEEP each unchanged row's original object identity so memoised rows
+// don't re-render. Used for flag-only background syncs (read/star/count changes) where the
+// order hasn't changed — avoids the wholesale array swap that shifts rows under the cursor.
+const MERGE_FIELDS = ['is_read', 'is_starred', 'unread_count', 'snippet', 'category', 'is_flagged', 'has_attachment', 'labels', 'subject', 'date'];
+function mergeMessagesInPlace(current, fresh) {
+  const byId = new Map(fresh.map(m => [m.id, m]));
+  return current.map(c => {
+    const f = byId.get(c.id);
+    if (!f) return c;
+    let changed = false;
+    for (const k of MERGE_FIELDS) {
+      const a = c[k], b = f[k];
+      if (a === b) continue;
+      if ((k === 'labels') && JSON.stringify(a) === JSON.stringify(b)) continue;
+      changed = true; break;
+    }
+    if (!changed) return c;
+    const merged = { ...c };
+    for (const k of MERGE_FIELDS) merged[k] = f[k];
+    return merged;
+  });
+}
+
 // Folder icon for move picker
 function FolderIcon({ specialUse, size = 13 }) {
   const s = (specialUse || '').toLowerCase();
@@ -181,6 +205,10 @@ export default function MessageList() {
   const pendingDeleteTimers = useRef(new Map()); // id/thread key -> pending delete metadata
   const recentMessageOpenUntilRef = useRef(0);
   const deferredRefreshTimerRef = useRef(null);
+  // Last time the pointer moved over the list. While recently active, a background sync
+  // that would REORDER the list (new mail, removals) is deferred so rows don't shift
+  // under the cursor mid-click; flag-only updates still apply in place immediately.
+  const listActiveUntilRef = useRef(0);
   // Last time we kicked an on-open IMAP sync per "accountId:folder", so opening a
   // non-INBOX folder refreshes it (the 60s tick only syncs INBOX) without hammering.
   const folderSyncedAtRef = useRef(new Map());
@@ -434,18 +462,42 @@ export default function MessageList() {
             // If the unread filter is on and the currently open message was just marked
             // read, the server won't return it — preserve it so the user can keep reading.
             let msgs = applyReadGuard(data.messages);
-            const activeId = useStore.getState().selectedMessageId;
+            const store = useStore.getState();
+            const activeId = store.selectedMessageId;
             if (unreadOnly && activeId && !msgs.some(m => m.id === activeId)) {
-              const kept = useStore.getState().messages.find(m => m.id === activeId);
+              const kept = store.messages.find(m => m.id === activeId);
               if (kept) msgs = [kept, ...msgs];
             }
-            setMessages(msgs);
-            if (sm === 'paginated') {
-              setHasMoreMessages(false);
-            } else {
-              setMessagesOffset(data.messages.length);
-              setHasMoreMessages(data.messages.length < data.total);
+            const applyOffset = () => {
+              if (sm === 'paginated') setHasMoreMessages(false);
+              else { setMessagesOffset(data.messages.length); setHasMoreMessages(data.messages.length < data.total); }
+            };
+            const cur = store.messages;
+            const sameOrder = cur.length === msgs.length && cur.every((c, i) => c.id === msgs[i].id);
+            if (sameOrder) {
+              // Same rows in the same order — patch mutable fields in place, keeping the
+              // identity of unchanged rows. If NOTHING changed (the common case: a backfill
+              // tick or a redundant sync), skip the state update entirely so the list never
+              // repaints or shifts — that's the "constantly redownloading" feel gone.
+              const merged = mergeMessagesInPlace(cur, msgs);
+              if (merged.some((m, i) => m !== cur[i])) setMessages(merged);
+              applyOffset();
+              return;
             }
+            // Structural change (new mail, removals, reorder). Don't swap the list out from
+            // under an active pointer — that's what causes the mis-clicks. Defer until the
+            // user pauses; a later refresh re-runs this and applies it once idle.
+            if (Date.now() < listActiveUntilRef.current) {
+              clearTimeout(deferredRefreshTimerRef.current);
+              deferredRefreshTimerRef.current = setTimeout(run, 700);
+              return;
+            }
+            // Idle: apply, preserving the scroll position so the viewport never jumps.
+            const el = listRef.current;
+            const top = el ? el.scrollTop : 0;
+            setMessages(msgs);
+            applyOffset();
+            if (el && top) requestAnimationFrame(() => { el.scrollTop = top; });
           },
         );
       } catch { /* intentional */ }
@@ -3044,6 +3096,7 @@ export default function MessageList() {
           ref={listRef}
           onScroll={handleScroll}
           onKeyDown={handleListKeyDown}
+          onMouseMove={() => { listActiveUntilRef.current = Date.now() + 1200; }}
           tabIndex={0}
           style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', outline: 'none', overscrollBehavior: 'contain' }}
         >
