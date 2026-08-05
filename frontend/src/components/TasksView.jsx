@@ -23,6 +23,7 @@ export default function TasksView() {
   const [brief, setBrief] = useState(null);   // { text, date, stale } | null
   const [briefBusy, setBriefBusy] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [assist, setAssist] = useState({});   // taskId -> { loading, text, error }
   const [research, setResearch] = useState({}); // taskId -> { loading, answer, sources, webVerified, error }
   const [canResearch, setCanResearch] = useState(false);
@@ -57,6 +58,23 @@ export default function TasksView() {
     } catch (e) {
       setResearch(r => ({ ...r, [b.id]: { error: e.message || 'Research failed' } }));
     }
+  };
+
+  // Serialize the whole grouped list to Markdown (account → client → checkbox tasks)
+  // for pasting into Notion. `- [ ]` / `- [x]` become Notion to-dos.
+  const copyAll = async () => {
+    const lines = [];
+    for (const b of blocks) {
+      if (b.kind === 'account') lines.push(`\n## ${b.text || 'Mail'}`);
+      else if (b.kind === 'heading') lines.push(`\n### ${b.text || ''}`);
+      else lines.push(`- [${b.done ? 'x' : ' '}] ${b.text || ''}`);
+    }
+    const md = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    try {
+      await navigator.clipboard.writeText(md);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { setError(t('tasksView.copyFailed', { defaultValue: 'Copy failed — check clipboard permissions.' })); }
   };
 
   const briefMe = async () => {
@@ -484,6 +502,9 @@ export default function TasksView() {
       </button>
       <button onClick={clearDone} style={btnStyle(false)}>
         {t('tasksView.clearDone', { defaultValue: 'Clear completed' })}
+      </button>
+      <button onClick={copyAll} style={btnStyle(false)} title={t('tasksView.copyAllHint', { defaultValue: 'Copy the whole list as Markdown (for Notion)' })}>
+        {copied ? t('tasksView.copied', { defaultValue: 'Copied ✓' }) : t('tasksView.copyAll', { defaultValue: 'Copy all' })}
       </button>
       <button onClick={() => setShowSettings(true)} style={btnStyle(false)} title={t('tasksView.settings', { defaultValue: 'Accounts, folders & clients' })}>
         {t('tasksView.settingsBtn', { defaultValue: 'Settings' })}

@@ -71,8 +71,16 @@ router.post('/tasks/reorder', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// Clear completed tasks (headings are never removed).
+// Clear completed tasks (headings are never removed). Remembers the source email of any
+// AI task first, so a cleared task isn't regenerated from its still-in-folder email.
 router.post('/tasks/clear-done', requireAuth, async (req, res) => {
+  await query(
+    `INSERT INTO task_completions (user_id, message_id)
+       SELECT user_id, source_ref FROM tasks
+        WHERE user_id = $1 AND source = 'ai' AND kind = 'task' AND done = true AND source_ref IS NOT NULL
+     ON CONFLICT (user_id, message_id) DO NOTHING`,
+    [uid(req)]
+  );
   const r = await query("DELETE FROM tasks WHERE user_id = $1 AND kind = 'task' AND done = true", [uid(req)]);
   res.json({ ok: true, removed: r.rowCount });
 });

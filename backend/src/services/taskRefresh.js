@@ -76,7 +76,8 @@ async function runRefresh(userId, opts = {}) {
   const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [userId]);
   const sources = prefRow.rows[0]?.preferences?.taskSources || {};
   const ownerNames = prefRow.rows[0]?.preferences?.ownerNames || '';
-  const accts = await query('SELECT * FROM email_accounts WHERE user_id = $1 AND enabled = true', [userId]);
+  // Ordered by the user's account order so task sections mirror the sidebar.
+  const accts = await query('SELECT * FROM email_accounts WHERE user_id = $1 AND enabled = true ORDER BY sort_order NULLS LAST, email_address', [userId]);
 
   const jobs = [];
   for (const a of accts.rows) {
@@ -117,6 +118,21 @@ async function runRefresh(userId, opts = {}) {
     rebuilt = true;
   }
 
+  // Completed items: remember the source email of every AI task the user has ticked off
+  // (so it's never regenerated), then remove those done tasks. Without this, a task you
+  // crossed off reappears next day because its email is still in the folder.
+  await query(
+    `INSERT INTO task_completions (user_id, message_id)
+       SELECT user_id, source_ref FROM tasks
+        WHERE user_id = $1 AND source = 'ai' AND done = true AND source_ref IS NOT NULL
+     ON CONFLICT (user_id, message_id) DO NOTHING`,
+    [userId]
+  );
+  await query("DELETE FROM tasks WHERE user_id = $1 AND source = 'ai' AND kind = 'task' AND done = true", [userId]);
+  const completedRefs = new Set(
+    (await query('SELECT message_id FROM task_completions WHERE user_id = $1', [userId])).rows.map(r => r.message_id)
+  );
+
   const existing = (await query(
     `SELECT id, kind, text, done, position, source, source_ref
        FROM tasks WHERE user_id = $1 ORDER BY position ASC, created_at ASC`,
@@ -146,7 +162,7 @@ async function runRefresh(userId, opts = {}) {
   generated.sort((a, b) => RANK[a.priority] - RANK[b.priority]);
   const newByAccount = new Map();   // acctKey -> { display, clients: Map(clientKey -> { display, tasks }) }
   for (const g of generated) {
-    if (!g.messageId || trackedRefs.has(g.messageId)) continue;
+    if (!g.messageId || trackedRefs.has(g.messageId) || completedRefs.has(g.messageId)) continue;
     trackedRefs.add(g.messageId);
     const acctDisplay = g.account || 'Mail';
     const aKey = norm(acctDisplay);
