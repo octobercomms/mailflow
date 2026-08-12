@@ -476,6 +476,10 @@ router.post('/send', async (req, res) => {
     let sentCopySaved = null;
     const sentMeta = sentFolder ? {
       messageId: mailOptions.messageId,
+      // The reply chain, so the Sent copy threads with the original conversation
+      // instead of becoming a standalone thread.
+      inReplyTo: inReplyTo || null,
+      references: references || null,
       subject: normalizedSubject,
       fromName,
       fromEmail,

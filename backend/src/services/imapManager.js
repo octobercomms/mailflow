@@ -3718,12 +3718,22 @@ export class ImapManager {
     fromEmail,
     to = [],
     cc = [],
+    inReplyTo = null,
+    references = null,
     snippet = '',
     date = new Date(),
   }) {
     if (!uid || !folder) return;
     const msgId = sanitizeStr(messageId);
-    const threadId = msgId || null;
+    // Thread the Sent copy into the original conversation: compute the thread from the
+    // reply's In-Reply-To/References (account-wide, so it finds the INBOX parent) rather
+    // than hardcoding the reply's own Message-ID — otherwise the sent reply becomes a
+    // standalone thread. This value is written first, so the later folder re-sync's
+    // COALESCE(thread_id, …) preserves it.
+    const threadId = await computeThreadId(
+      account.id, msgId, sanitizeStr(inReplyTo), sanitizeStr(references),
+      sanitizeStr(subject), safeDate(date)
+    );
     await query(`
       INSERT INTO messages (
         account_id, uid, folder, message_id, subject,
