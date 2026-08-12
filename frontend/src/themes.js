@@ -2,7 +2,7 @@ export const THEMES = {
   october: {
     label: 'October',
     description: 'October brand — light & gold',
-    preview: ['#ffffff', '#f5f4ef', '#e7cd41', '#000000'],
+    preview: ['#ffffff', '#f5f4ef', '#a67c00', '#000000'],
     vars: {
       '--bg-primary': '#ffffff',
       '--bg-secondary': '#ffffff',
@@ -14,10 +14,16 @@ export const THEMES = {
       '--text-primary': '#000000',
       '--text-secondary': '#55524a',
       '--text-tertiary': '#8a877d',
-      '--accent': '#e7cd41',
+      // A deeper gold than the bright brand mark: the accent is used both as a fill
+      // (buttons, with dark text) AND as a foreground colour on white (icons, links,
+      // active states, unread dots) in ~360 places. Bright #e7cd41 is unreadable as
+      // foreground on white (~1.4:1); this deeper gold reads ~3.9:1 on white and still
+      // carries dark text at ~4.4:1 — legible in both roles. The bright brand gold lives
+      // on in the logo/favicon (separate assets), so the identity is unchanged.
+      '--accent': '#a67c00',
       '--accent-text': '#1a1a1a',
-      '--accent-dim': '#f7edb5',
-      '--accent-glow': 'rgba(231,205,65,0.22)',
+      '--accent-dim': '#f6ecc2',
+      '--accent-glow': 'rgba(166,124,0,0.20)',
       '--green': '#2f9e44',
       '--red': '#e03131',
       '--amber': '#d9a520',
@@ -669,7 +675,7 @@ export function getInitialTheme() {
 // The accent actually in effect. A custom-CSS override of --accent wins over the
 // theme's declared value, so JS-driven chrome (favicon, PWA theme-color, the logo
 // mark) reads the *computed* value to match what var(--accent) resolves to in CSS.
-export function getEffectiveAccent(fallback = '#e7cd41') {
+export function getEffectiveAccent(fallback = '#a67c00') {
   try {
     const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     return v || fallback;
