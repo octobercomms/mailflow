@@ -1049,7 +1049,7 @@ export default function ComposeModal() {
             }}
             style={{
               background: 'none', border: 'none',
-              color: 'var(--accent)', fontSize: 16,
+              color: 'var(--accent-fg)', fontSize: 16,
               cursor: 'pointer', padding: '4px 0', minWidth: 60,
               WebkitTapHighlightColor: 'transparent',
             }}
@@ -1082,7 +1082,7 @@ export default function ComposeModal() {
               disabled={sending || (toChips.length === 0 && !toInput.trim())}
               style={{
                 background: 'none', border: 'none',
-                color: sending || (toChips.length === 0 && !toInput.trim()) ? 'var(--text-tertiary)' : 'var(--accent)',
+                color: sending || (toChips.length === 0 && !toInput.trim()) ? 'var(--text-tertiary)' : 'var(--accent-fg)',
                 fontSize: 16, fontWeight: 600,
                 cursor: sending || (toChips.length === 0 && !toInput.trim()) ? 'default' : 'pointer',
                 padding: '4px 0',
@@ -1113,7 +1113,7 @@ export default function ComposeModal() {
                   flex: 1, padding: '9px 0',
                   background: 'none', border: 'none',
                   borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
-                  color: active ? 'var(--accent)' : 'var(--text-tertiary)',
+                  color: active ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                   fontSize: 13, fontWeight: active ? 600 : 400,
                   cursor: 'pointer',
                   WebkitTapHighlightColor: 'transparent',
@@ -1270,7 +1270,7 @@ export default function ComposeModal() {
               {aiPanel && !htmlMode && (
                 <div style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', padding: '10px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{t('compose.toolbar.aiPanelTitle')}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-fg)' }}>{t('compose.toolbar.aiPanelTitle')}</span>
                     <button
                       onClick={() => { aiAbortRef.current?.abort(); setAiPanel(null); }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16, lineHeight: 1, padding: '0 2px' }}
@@ -1436,7 +1436,7 @@ export default function ComposeModal() {
               <button
                 onClick={() => { setShowDiscardSheet(false); handleSaveDraft(true); }}
                 disabled={savingDraft}
-                style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
+                style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent-fg)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
               >
                 {savingDraft ? t('compose.savingDraft') : t('compose.closeDraft.save')}
               </button>
@@ -1477,7 +1477,7 @@ export default function ComposeModal() {
             <button
               onClick={() => { setShowAttachWarnForDraft(false); doSaveDraft({ closeAfter: attachWarnDraftCloseAfter }); }}
               disabled={savingDraft}
-              style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
+              style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent-fg)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
             >
               {savingDraft ? t('compose.savingDraft') : t('compose.closeDraft.save')}
             </button>
@@ -1511,7 +1511,7 @@ export default function ComposeModal() {
             </div>
             <button
               onClick={() => { setShowEmptySubjectWarn(false); handleSend({ skipSubjectWarn: true }); }}
-              style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
+              style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent-fg)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
             >
               {t('compose.emptySubject.sendAnyway')}
             </button>
@@ -1548,7 +1548,7 @@ export default function ComposeModal() {
             </div>
             <button
               onClick={() => { setShowForgottenAttachWarn(false); handleSend({ skipSubjectWarn: true, skipAttachWarn: true }); }}
-              style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
+              style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--accent-fg)', fontSize: 16, fontWeight: 500, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', WebkitTapHighlightColor: 'transparent' }}
             >
               {t('compose.forgottenAttachment.sendAnyway')}
             </button>
@@ -1577,10 +1577,10 @@ export default function ComposeModal() {
             ].map(({ value, label, color }) => (
               <button key={value}
                 onClick={() => { setPriority(value); setShowPrioritySheet(false); }}
-                style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: priority === value ? 'var(--accent)' : color, fontSize: 16, fontWeight: priority === value ? 600 : 400, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', WebkitTapHighlightColor: 'transparent' }}>
+                style={{ width: '100%', padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', color: priority === value ? 'var(--accent-fg)' : color, fontSize: 16, fontWeight: priority === value ? 600 : 400, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', WebkitTapHighlightColor: 'transparent' }}>
                 {label}
                 {priority === value && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 )}
               </button>
             ))}
@@ -1618,7 +1618,7 @@ export default function ComposeModal() {
           boxShadow: 'var(--shadow-soft)', zIndex: 1000,
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
           <polyline points="22,6 12,13 2,6"/>
         </svg>
@@ -1890,7 +1890,7 @@ export default function ComposeModal() {
       {aiPanel && !plaintextEmail && !htmlMode && (
         <div style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{t('compose.toolbar.aiPanelTitle')}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-fg)' }}>{t('compose.toolbar.aiPanelTitle')}</span>
             <button
               onClick={() => { aiAbortRef.current?.abort(); setAiPanel(null); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16, lineHeight: 1, padding: '0 2px' }}
@@ -2323,7 +2323,7 @@ const TBtn = forwardRef(function TBtn({ active, title, onMouseDown, children }, 
       style={{
         background: active ? 'var(--bg-hover)' : 'none',
         border: 'none', borderRadius: 4, padding: '3px 6px',
-        color: active ? 'var(--accent)' : 'var(--text-secondary)',
+        color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
         cursor: 'pointer', fontSize: 12, fontWeight: 600,
         display: 'inline-flex', alignItems: 'center',
       }}
@@ -2507,7 +2507,7 @@ function RichToolbar({ editor, onAttach, onInsertImage, htmlMode, onToggleHtml, 
   );
 
   const mtb = (active, title, onMD, children) => (
-    <button key={title} title={title} onMouseDown={onMD} style={{ background: active ? 'var(--bg-hover)' : 'none', border: 'none', borderRadius: 4, padding: '6px 4px', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 1, WebkitTapHighlightColor: 'transparent' }}>{children}</button>
+    <button key={title} title={title} onMouseDown={onMD} style={{ background: active ? 'var(--bg-hover)' : 'none', border: 'none', borderRadius: 4, padding: '6px 4px', color: active ? 'var(--accent-fg)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 1, WebkitTapHighlightColor: 'transparent' }}>{children}</button>
   );
 
   return (
@@ -2528,7 +2528,7 @@ function RichToolbar({ editor, onAttach, onInsertImage, htmlMode, onToggleHtml, 
               </button>
             )}
             <button ref={linkBtnRef} title={t('compose.toolbar.insertLink')} onMouseDown={openLink}
-              style={{ background: es.link ? 'var(--bg-hover)' : 'none', border: 'none', borderRadius: 4, padding: '6px 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: es.link ? 'var(--accent)' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>
+              style={{ background: es.link ? 'var(--bg-hover)' : 'none', border: 'none', borderRadius: 4, padding: '6px 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: es.link ? 'var(--accent-fg)' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
             </button>
             {aiEnabled && (
@@ -2541,7 +2541,7 @@ function RichToolbar({ editor, onAttach, onInsertImage, htmlMode, onToggleHtml, 
               }} style={{
                 background: (aiMenuPos || aiPanelOpen) ? 'var(--accent-dim)' : 'none', border: 'none', borderRadius: 4,
                 padding: '6px 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                flex: 1, color: (aiMenuPos || aiPanelOpen) ? 'var(--accent)' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent',
+                flex: 1, color: (aiMenuPos || aiPanelOpen) ? 'var(--accent-fg)' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent',
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
@@ -2550,7 +2550,7 @@ function RichToolbar({ editor, onAttach, onInsertImage, htmlMode, onToggleHtml, 
               </button>
             )}
             <button title={t('compose.toolbar.moreFormatting')} onMouseDown={e => { e.preventDefault(); setShowMobileMore(m => !m); }}
-              style={{ background: showMobileMore ? 'var(--bg-hover)' : 'none', border: 'none', borderRadius: 4, padding: '6px 4px', color: showMobileMore ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 18, fontWeight: 300, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 1, WebkitTapHighlightColor: 'transparent' }}>+</button>
+              style={{ background: showMobileMore ? 'var(--bg-hover)' : 'none', border: 'none', borderRadius: 4, padding: '6px 4px', color: showMobileMore ? 'var(--accent-fg)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 18, fontWeight: 300, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 1, WebkitTapHighlightColor: 'transparent' }}>+</button>
           </div>
           {showMobileMore && (
             <div ref={mobileMoreRef} style={{ borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '2px 0', flexWrap: 'wrap' }}>
@@ -2716,7 +2716,7 @@ function RichToolbar({ editor, onAttach, onInsertImage, htmlMode, onToggleHtml, 
             }} style={{
               background: (aiMenuPos || aiPanelOpen) ? 'var(--accent-dim)' : 'none', border: 'none', borderRadius: 4,
               padding: '3px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-              color: (aiMenuPos || aiPanelOpen) ? 'var(--accent)' : 'var(--text-secondary)',
+              color: (aiMenuPos || aiPanelOpen) ? 'var(--accent-fg)' : 'var(--text-secondary)',
             }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
@@ -2733,7 +2733,7 @@ function RichToolbar({ editor, onAttach, onInsertImage, htmlMode, onToggleHtml, 
               style={{
                 background: htmlMode ? 'var(--accent-dim)' : 'none', border: 'none', borderRadius: 4,
                 padding: '3px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-                color: htmlMode ? 'var(--accent)' : 'var(--text-secondary)',
+                color: htmlMode ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 fontFamily: 'monospace', fontSize: 11, fontWeight: 600, letterSpacing: '-0.5px',
               }}>
               {'</>'}
@@ -2910,14 +2910,14 @@ function DropItem({ icon, label, active, onClick }) {
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '9px 14px', cursor: 'pointer',
         background: hov ? 'var(--bg-hover)' : 'transparent',
-        color: active ? 'var(--accent)' : 'var(--text-primary)',
+        color: active ? 'var(--accent-fg)' : 'var(--text-primary)',
         fontSize: 13, transition: 'background 0.08s',
       }}
     >
-      <span style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)' }}>{icon}</span>
+      <span style={{ color: active ? 'var(--accent-fg)' : 'var(--text-tertiary)' }}>{icon}</span>
       {label}
       {active && (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" style={{ marginLeft: 'auto' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2.5" style={{ marginLeft: 'auto' }}>
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       )}
@@ -3091,7 +3091,7 @@ function ChipInput({ chips, onChipsChange, value, onChange, placeholder, autoFoc
           onTouchMove={cancelLongPress}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
-            background: 'var(--accent-dim)', color: 'var(--accent)',
+            background: 'var(--accent-dim)', color: 'var(--accent-fg)',
             borderRadius: 6, padding: '2px 6px 2px 8px', fontSize: 12,
             maxWidth: 220, cursor: 'default', userSelect: 'none',
           }}>
@@ -3099,7 +3099,7 @@ function ChipInput({ chips, onChipsChange, value, onChange, placeholder, autoFoc
           <button
             type="button"
             onClick={() => onChipsChange(chips.filter((_, j) => j !== i))}
-            style={{ background: 'none', border: 'none', padding: '0 0 0 2px', cursor: 'pointer', color: 'var(--accent)', display: 'flex', lineHeight: 1, flexShrink: 0 }}
+            style={{ background: 'none', border: 'none', padding: '0 0 0 2px', cursor: 'pointer', color: 'var(--accent-fg)', display: 'flex', lineHeight: 1, flexShrink: 0 }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

@@ -187,14 +187,14 @@ export default function CommandPalette({ open, onClose }) {
                 transition: 'background 0.08s, transform 0.08s',
               }}
             >
-              <span style={{ color: action.active ? 'var(--accent)' : 'var(--text-tertiary)', display: 'flex', flexShrink: 0 }}>
+              <span style={{ color: action.active ? 'var(--accent-fg)' : 'var(--text-tertiary)', display: 'flex', flexShrink: 0 }}>
                 {action.icon}
               </span>
-              <span style={{ fontSize: 13, color: action.active ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
+              <span style={{ fontSize: 13, color: action.active ? 'var(--accent-fg)' : 'var(--text-primary)', flex: 1 }}>
                 {action.label}
               </span>
               {action.active && (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               )}

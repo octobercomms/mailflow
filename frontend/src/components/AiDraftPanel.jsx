@@ -79,7 +79,7 @@ export default function AiDraftPanel({ message, aiEnabled, onUseDraft }) {
 
   return (
     <div style={{ ...wrap, flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--accent)', fontSize: 12.5, fontWeight: 600 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--accent-fg)', fontSize: 12.5, fontWeight: 600 }}>
         {spark}
         <span>{t('aiDraft.waiting', { defaultValue: 'Suggested reply' })}</span>
         <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>· {t('aiDraft.reviewNote', { defaultValue: 'review before sending' })}</span>

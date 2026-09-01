@@ -120,7 +120,7 @@ function AccountForm({ initial, onSave, onCancel }) {
                 padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                 border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
                 background: active ? 'var(--accent-dim)' : 'transparent',
-                color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 cursor: 'pointer', transition: 'all 0.12s',
               }}>
                 {presetLabel}
@@ -1181,7 +1181,7 @@ function FontsTab() {
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
             {t('admin.appearance.fontSize')}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent)' }}>{fontSize}%</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent-fg)' }}>{fontSize}%</div>
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 14 }}>
           {t('admin.appearance.fontSizeDescription')}
@@ -1267,7 +1267,7 @@ function FontsTab() {
                     </span>
                     <span style={{
                       fontFamily: set.vars['--font-display'],
-                      color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                      color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
                       fontSize: 13,
                     }}>
                       {set.preview.heading}
@@ -1279,7 +1279,7 @@ function FontsTab() {
                     </span>
                     <span style={{
                       fontFamily: set.vars['--font-sans'],
-                      color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                      color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
                       fontSize: 13,
                     }}>
                       {set.preview.body}
@@ -1291,7 +1291,7 @@ function FontsTab() {
                     </span>
                     <span style={{
                       fontFamily: set.vars['--font-mono'],
-                      color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                      color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
                       fontSize: 12,
                     }}>
                       {set.preview.mono}
@@ -1467,7 +1467,7 @@ function LayoutsTab() {
                 color: 'var(--text-primary)', cursor: 'pointer', textAlign: 'left',
               }}
             >
-              <span style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ color: active ? 'var(--accent-fg)' : 'var(--text-tertiary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                 <SwipeActionIcon action={option.id} />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
@@ -1475,7 +1475,7 @@ function LayoutsTab() {
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{option.desc}</span>
               </span>
               {active && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               )}
@@ -1595,7 +1595,7 @@ function LayoutsTab() {
                     background: active ? 'var(--bg-hover)' : 'var(--bg-tertiary)',
                     border: `2px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
                     borderRadius: 7, cursor: 'pointer', transition: 'all 0.15s', outline: 'none',
-                    color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                    color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
                   }}
                   onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border)'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
@@ -1741,7 +1741,7 @@ function LayoutsTab() {
                   background: active ? 'var(--bg-hover)' : 'var(--bg-tertiary)',
                   border: `2px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
                   borderRadius: 7, cursor: 'pointer', transition: 'all 0.15s', outline: 'none',
-                  color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                  color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border)'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
@@ -1778,7 +1778,7 @@ function LayoutsTab() {
                   background: active ? 'var(--bg-hover)' : 'var(--bg-tertiary)',
                   border: `2px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
                   borderRadius: 7, cursor: 'pointer', transition: 'all 0.15s', outline: 'none',
-                  color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                  color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border)'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
@@ -2029,13 +2029,13 @@ function CardDavCard() {
         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
         onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2">
           <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
         </svg>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{t('admin.integrations.carddav.title')}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(99,102,241,0.15)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('todoist.betaLabel')}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(99,102,241,0.15)', color: 'var(--accent-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('todoist.betaLabel')}</span>
             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: (!loading && connected) ? 'rgba(34,197,94,0.1)' : 'var(--bg-primary)', color: (!loading && connected) ? '#22c55e' : 'var(--text-tertiary)', border: `1px solid ${(!loading && connected) ? '#22c55e' : 'var(--border)'}` }}>
               {loading ? '...' : (connected ? t('admin.integrations.carddav.connected') : t('admin.integrations.carddav.notConnected'))}
             </span>
@@ -2186,7 +2186,7 @@ function OmiCard() {
               style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>
               {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
             </button>
-            {saved && <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓ {t('common.saved', { defaultValue: 'Saved' })}</span>}
+            {saved && <span style={{ color: 'var(--accent-fg)', fontSize: 12 }}>✓ {t('common.saved', { defaultValue: 'Saved' })}</span>}
           </div>
         </div>
       )}
@@ -2259,7 +2259,7 @@ function ResearchCard() {
               style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>
               {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
             </button>
-            {saved && <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓ {t('common.saved', { defaultValue: 'Saved' })}</span>}
+            {saved && <span style={{ color: 'var(--accent-fg)', fontSize: 12 }}>✓ {t('common.saved', { defaultValue: 'Saved' })}</span>}
           </div>
         </div>
       )}
@@ -2453,7 +2453,7 @@ function IntegrationsTab() {
     border: 'none',
     borderBottom: `2px solid ${subTab === key ? 'var(--accent)' : 'transparent'}`,
     marginBottom: -1,
-    color: subTab === key ? 'var(--accent)' : 'var(--text-secondary)',
+    color: subTab === key ? 'var(--accent-fg)' : 'var(--text-secondary)',
     cursor: 'pointer',
     fontSize: 13,
     fontWeight: subTab === key ? 600 : 400,
@@ -2550,7 +2550,7 @@ function IntegrationsTab() {
                   border: '1px solid rgba(124,106,247,0.15)',
                   fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
                 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--accent)', marginBottom: 6 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--accent-fg)', marginBottom: 6 }}>
                     {t('admin.integrations.microsoft.setupTitle')}
                   </div>
                   <ol style={{ margin: 0, paddingLeft: 18 }}>
@@ -2720,7 +2720,7 @@ function IntegrationsTab() {
                               {t('admin.integrations.microsoft.deviceCodeVisit')}
                             </span>
                             <a href={deviceFlow.verificationUri} target="_blank" rel="noreferrer"
-                              style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>
+                              style={{ fontSize: 12, color: 'var(--accent-fg)', fontWeight: 500 }}>
                               {deviceFlow.verificationUri}
                             </a>
                           </div>
@@ -2783,7 +2783,7 @@ function IntegrationsTab() {
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2">
                 <circle cx="12" cy="12" r="9"/>
                 <polyline points="9 12 11 14 15 10"/>
               </svg>
@@ -2794,7 +2794,7 @@ function IntegrationsTab() {
                   </span>
                   <span style={{
                     fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                    background: 'rgba(99,102,241,0.15)', color: 'var(--accent)',
+                    background: 'rgba(99,102,241,0.15)', color: 'var(--accent-fg)',
                     textTransform: 'uppercase', letterSpacing: '0.06em',
                   }}>
                     {t('todoist.betaLabel')}
@@ -4024,7 +4024,7 @@ function CategoriesSection({ initialSubTab }) {
                   cursor: isAdded ? 'default' : 'pointer',
                   background: isAdded ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
                   border: `1px solid ${isAdded ? 'var(--accent)' : 'var(--border)'}`,
-                  color: isAdded ? 'var(--accent)' : 'var(--text-secondary)',
+                  color: isAdded ? 'var(--accent-fg)' : 'var(--text-secondary)',
                   opacity: adding && !isAdded ? 0.5 : 1,
                 }}>
                 {setName === 'social_networks' ? t('admin.categories.builtinSocial') : t('admin.categories.builtinDev')}
@@ -4094,7 +4094,7 @@ function CategoriesSection({ initialSubTab }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{t('admin.categories.gtdReveal')}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}>BETA</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent-fg)' }}>BETA</span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t('admin.categories.gtdRevealDesc')}</div>
         </div>
@@ -4210,7 +4210,7 @@ function GtdPetBlock() {
 
         <button onClick={handleImport} disabled={importing || !petJsonFile || !sheetFile} style={{
           marginTop: 12, padding: '7px 14px', background: 'var(--accent)', border: 'none', borderRadius: 6,
-          color: 'white', fontSize: 13, whiteSpace: 'nowrap',
+          color: 'var(--accent-text)', fontSize: 13, whiteSpace: 'nowrap',
           cursor: (importing || !petJsonFile || !sheetFile) ? 'default' : 'pointer',
           opacity: (importing || !petJsonFile || !sheetFile) ? 0.5 : 1,
         }}>
@@ -4405,7 +4405,7 @@ function GtdAccountBlock({ account }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={handleSave} disabled={saving} style={{
               padding: '7px 14px', background: 'var(--accent)', border: 'none', borderRadius: 6,
-              color: 'white', fontSize: 13, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.5 : 1,
+              color: 'var(--accent-text)', fontSize: 13, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.5 : 1,
             }}>
               {saving ? t('common.saving') : t('common.save')}
             </button>
@@ -4742,7 +4742,7 @@ function UsersAndInvitesPanel() {
                 {u.isAdmin && (
                   <span style={{
                     fontSize: 10, padding: '2px 6px', borderRadius: 20,
-                    background: 'rgba(124,106,247,0.15)', color: 'var(--accent)',
+                    background: 'rgba(124,106,247,0.15)', color: 'var(--accent-fg)',
                     border: '1px solid rgba(124,106,247,0.25)', fontWeight: 600,
                     letterSpacing: '0.04em', textTransform: 'uppercase',
                   }}>
@@ -4767,7 +4767,7 @@ function UsersAndInvitesPanel() {
                     padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500,
                     border: '1px solid var(--border)',
                     background: u.isAdmin ? 'var(--bg-elevated)' : 'transparent',
-                    color: u.isAdmin ? 'var(--text-secondary)' : 'var(--accent)',
+                    color: u.isAdmin ? 'var(--text-secondary)' : 'var(--accent-fg)',
                     cursor: 'pointer', transition: 'all 0.1s',
                   }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
@@ -5240,7 +5240,7 @@ function NotificationsTab() {
               onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--border)'; }}
               onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
             >
-              <div style={{ marginBottom: 8, color: selected ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+              <div style={{ marginBottom: 8, color: selected ? 'var(--accent-fg)' : 'var(--text-tertiary)' }}>
                 {id === 'none' ? (
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                     <line x1="1" y1="1" x2="23" y2="23"/>
@@ -5280,7 +5280,7 @@ function NotificationsTab() {
               onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--border)'; }}
               onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
             >
-              <div style={{ color: selected ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+              <div style={{ color: selected ? 'var(--accent-fg)' : 'var(--text-tertiary)' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
@@ -5496,7 +5496,7 @@ function SubTabs({ tabs, initialTab }) {
               background: 'none', border: 'none',
               borderBottom: `2px solid ${active === tab.id ? 'var(--accent)' : 'transparent'}`,
               marginBottom: -1,
-              color: active === tab.id ? 'var(--accent)' : 'var(--text-secondary)',
+              color: active === tab.id ? 'var(--accent-fg)' : 'var(--text-secondary)',
               cursor: 'pointer', fontSize: 13,
               fontWeight: active === tab.id ? 600 : 400,
               transition: 'color 0.15s, border-color 0.15s',
@@ -5599,7 +5599,7 @@ function AboutTab() {
           <div key={label} style={rowStyle(i === generalRows.length - 1)}>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
             <a href={href} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}
+              style={{ fontSize: 13, color: 'var(--accent-fg)', textDecoration: 'none' }}
             >{href.replace('https://', '')}</a>
           </div>
         ))}
@@ -5612,7 +5612,7 @@ function AboutTab() {
           <div key={label} style={rowStyle(i === supportRows.length - 1)}>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
             <a href={href} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}
+              style={{ fontSize: 13, color: 'var(--accent-fg)', textDecoration: 'none' }}
             >{href.replace('https://', '')}</a>
           </div>
         ))}
@@ -6043,7 +6043,7 @@ function RulesTab() {
           ))}
           <button
             onClick={addCondition}
-            style={{ marginTop: 4, fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ marginTop: 4, fontSize: 12, color: 'var(--accent-fg)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             + {t('admin.rules.addCondition')}
           </button>
@@ -6504,7 +6504,7 @@ function ShortcutsTab() {
           display: 'inline-flex', alignItems: 'center',
           padding: '2px 10px', borderRadius: 4,
           background: 'var(--accent-dim)', border: '1px solid var(--accent)',
-          fontSize: 11, color: 'var(--accent)', fontStyle: 'italic',
+          fontSize: 11, color: 'var(--accent-fg)', fontStyle: 'italic',
         }}>
           {t('admin.shortcuts.recording')}
         </span>
@@ -6560,7 +6560,7 @@ function ShortcutsTab() {
             padding: '6px 14px', cursor: 'pointer', fontSize: 12,
             color: 'var(--text-secondary)', flexShrink: 0,
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-fg)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
         >
           {t('admin.shortcuts.resetAll')}
@@ -6624,7 +6624,7 @@ function ShortcutsTab() {
                           color: 'var(--text-tertiary)', padding: 2,
                           fontSize: 11, display: 'flex', alignItems: 'center',
                         }}
-                        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-fg)'}
                         onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -8091,7 +8091,7 @@ export default function AdminPanel() {
               >
                 <span style={{ display: 'flex', opacity: adminTab === tab.id && !searchResults ? 1 : 0.7 }}>{tab.icon}</span>
                 {t(tab.labelKey)}
-                {tab.beta && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: adminTab === tab.id && !searchResults ? 'rgba(255,255,255,0.25)' : 'color-mix(in srgb, var(--accent) 15%, transparent)', color: adminTab === tab.id && !searchResults ? '#fff' : 'var(--accent)' }}>BETA</span>}
+                {tab.beta && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: adminTab === tab.id && !searchResults ? 'rgba(255,255,255,0.25)' : 'color-mix(in srgb, var(--accent) 15%, transparent)', color: adminTab === tab.id && !searchResults ? '#fff' : 'var(--accent-fg)' }}>BETA</span>}
               </button>
             ))}
           </div>
@@ -8174,11 +8174,11 @@ export default function AdminPanel() {
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <span style={{ color: isActive ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                      <span style={{ color: isActive ? 'var(--accent-fg)' : 'var(--text-tertiary)' }}>
                         {tab.icon}
                       </span>
                       {t(tab.labelKey)}
-                      {tab.beta && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)', marginLeft: 'auto' }}>BETA</span>}
+                      {tab.beta && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent-fg)', marginLeft: 'auto' }}>BETA</span>}
                     </button>
                   );
                 })}
@@ -8204,11 +8204,11 @@ export default function AdminPanel() {
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
               >
-                <span style={{ color: isActive ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                <span style={{ color: isActive ? 'var(--accent-fg)' : 'var(--text-tertiary)' }}>
                   {tab.icon}
                 </span>
                 {t(tab.labelKey)}
-                {tab.beta && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)', marginLeft: 'auto' }}>BETA</span>}
+                {tab.beta && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 4px', borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent-fg)', marginLeft: 'auto' }}>BETA</span>}
               </button>
             );
           })}

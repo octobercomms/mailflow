@@ -75,7 +75,7 @@ const SWIPE_ACTIONS = {
   archive: { color: 'var(--amber, #d97706)' },
   delete: { color: 'var(--red, #ef4444)' },
   star: { color: 'var(--amber, #d97706)' },
-  markRead: { color: 'var(--accent)' },
+  markRead: { color: 'var(--accent-fg)' },
   reply: { color: 'var(--green, #22c55e)' },
   replyAll: { color: '#3b82f6' },
   disabled: { color: 'transparent' },
@@ -2384,7 +2384,7 @@ export default function MessageList() {
               background: unreadOnly ? 'var(--accent-dim)' : 'none',
               border: `1px solid ${unreadOnly ? 'var(--accent)' : 'transparent'}`,
               borderRadius: 6, padding: '5px 7px',
-              color: unreadOnly ? 'var(--accent)' : 'var(--text-tertiary)',
+              color: unreadOnly ? 'var(--accent-fg)' : 'var(--text-tertiary)',
               cursor: 'pointer', fontSize: 11, fontWeight: 500,
               minHeight: 44, display: 'flex', alignItems: 'center',
             }}
@@ -2399,7 +2399,7 @@ export default function MessageList() {
             aria-label={t('messageList.sync')}
             style={{
               background: 'none', border: 'none',
-              color: syncing ? 'var(--accent)' : 'var(--text-tertiary)',
+              color: syncing ? 'var(--accent-fg)' : 'var(--text-tertiary)',
               cursor: syncing ? 'not-allowed' : 'pointer',
               padding: 0, borderRadius: 7, display: 'flex',
               alignItems: 'center', justifyContent: 'center',
@@ -2420,7 +2420,7 @@ export default function MessageList() {
             aria-label={t('contacts.title')}
             style={{
               background: showContacts ? 'var(--bg-hover)' : 'none', border: 'none',
-              color: showContacts ? 'var(--accent)' : 'var(--text-tertiary)',
+              color: showContacts ? 'var(--accent-fg)' : 'var(--text-tertiary)',
               cursor: 'pointer', padding: 0, borderRadius: 7, display: 'flex',
               alignItems: 'center', justifyContent: 'center',
               minWidth: 44, minHeight: 44,
@@ -2459,7 +2459,7 @@ export default function MessageList() {
               onClick={clearSelection}
               style={{
                 background: 'none', border: 'none',
-                color: 'var(--accent)', cursor: 'pointer',
+                color: 'var(--accent-fg)', cursor: 'pointer',
                 fontSize: 14, fontWeight: 500,
                 padding: '0 4px', minWidth: 52, minHeight: 44,
                 display: 'flex', alignItems: 'center',
@@ -2529,12 +2529,12 @@ export default function MessageList() {
               style={{
                 background: 'none', border: '1px solid transparent',
                 borderRadius: 6, padding: '4px 6px',
-                color: syncing ? 'var(--accent)' : 'var(--text-tertiary)',
+                color: syncing ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                 cursor: syncing ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center',
                 transition: 'color 0.15s, border-color 0.15s',
               }}
-              onMouseEnter={e => { if (!syncing) { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
+              onMouseEnter={e => { if (!syncing) { e.currentTarget.style.color = 'var(--accent-fg)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
               onMouseLeave={e => { if (!syncing) { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.borderColor = 'transparent'; }}}
             >
               <svg
@@ -2564,11 +2564,11 @@ export default function MessageList() {
                     background: showLayoutPicker ? 'var(--accent-dim)' : 'none',
                     border: `1px solid ${showLayoutPicker ? 'var(--accent)' : 'transparent'}`,
                     borderRadius: 6, padding: '4px 6px',
-                    color: showLayoutPicker ? 'var(--accent)' : 'var(--text-tertiary)',
+                    color: showLayoutPicker ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center',
                     transition: 'color 0.15s, border-color 0.15s, background 0.15s',
                   }}
-                  onMouseEnter={e => { if (!showLayoutPicker) { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
+                  onMouseEnter={e => { if (!showLayoutPicker) { e.currentTarget.style.color = 'var(--accent-fg)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
                   onMouseLeave={e => { if (!showLayoutPicker) { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.borderColor = 'transparent'; }}}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2607,11 +2607,11 @@ export default function MessageList() {
                           onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                           onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                         >
-                          <span style={{ fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-primary)', fontWeight: isActive ? 500 : 400, flex: 1 }}>
+                          <span style={{ fontSize: 13, color: isActive ? 'var(--accent-fg)' : 'var(--text-primary)', fontWeight: isActive ? 500 : 400, flex: 1 }}>
                             {def.label}
                           </span>
                           {isActive && (
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2.5">
                               <polyline points="20 6 9 17 4 12"/>
                             </svg>
                           )}
@@ -2634,7 +2634,7 @@ export default function MessageList() {
                     background: unreadOnly ? 'var(--accent-dim)' : 'none',
                     border: `1px solid ${unreadOnly ? 'var(--accent)' : 'var(--border)'}`,
                     borderRadius: 6, padding: '4px 8px',
-                    color: unreadOnly ? 'var(--accent)' : 'var(--text-tertiary)',
+                    color: unreadOnly ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                     cursor: 'pointer', fontSize: 11, fontWeight: 500,
                   }}
                 >
@@ -2672,7 +2672,7 @@ export default function MessageList() {
                   display: 'flex', alignItems: 'center',
                   transition: 'color 0.15s, border-color 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-fg)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.borderColor = 'transparent'; }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -2689,11 +2689,11 @@ export default function MessageList() {
                 background: selectionMode ? 'var(--accent-dim)' : 'none',
                 border: `1px solid ${selectionMode ? 'var(--accent)' : 'transparent'}`,
                 borderRadius: 6, padding: '4px 6px',
-                color: selectionMode ? 'var(--accent)' : 'var(--text-tertiary)',
+                color: selectionMode ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                 transition: 'color 0.15s, border-color 0.15s, background 0.15s',
               }}
-              onMouseEnter={e => { if (!selectionMode) { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
+              onMouseEnter={e => { if (!selectionMode) { e.currentTarget.style.color = 'var(--accent-fg)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
               onMouseLeave={e => { if (!selectionMode) { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.borderColor = 'transparent'; }}}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2714,7 +2714,7 @@ export default function MessageList() {
                 background: unreadOnly ? 'var(--accent-dim)' : 'none',
                 border: `1px solid ${unreadOnly ? 'var(--accent)' : 'var(--border)'}`,
                 borderRadius: 6, padding: '4px 8px',
-                color: unreadOnly ? 'var(--accent)' : 'var(--text-tertiary)',
+                color: unreadOnly ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                 cursor: 'pointer', fontSize: 11, fontWeight: 500,
               }}
             >
@@ -2750,11 +2750,11 @@ export default function MessageList() {
                   background: showLayoutPicker ? 'var(--accent-dim)' : 'none',
                   border: `1px solid ${showLayoutPicker ? 'var(--accent)' : 'transparent'}`,
                   borderRadius: 6, padding: '4px 6px',
-                  color: showLayoutPicker ? 'var(--accent)' : 'var(--text-tertiary)',
+                  color: showLayoutPicker ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                   cursor: 'pointer', display: 'flex', alignItems: 'center',
                   transition: 'color 0.15s, border-color 0.15s, background 0.15s',
                 }}
-                onMouseEnter={e => { if (!showLayoutPicker) { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
+                onMouseEnter={e => { if (!showLayoutPicker) { e.currentTarget.style.color = 'var(--accent-fg)'; e.currentTarget.style.borderColor = 'var(--border)'; }}}
                 onMouseLeave={e => { if (!showLayoutPicker) { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.borderColor = 'transparent'; }}}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2792,11 +2792,11 @@ export default function MessageList() {
                         onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                         onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <span style={{ fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-primary)', fontWeight: isActive ? 500 : 400, flex: 1 }}>
+                        <span style={{ fontSize: 13, color: isActive ? 'var(--accent-fg)' : 'var(--text-primary)', fontWeight: isActive ? 500 : 400, flex: 1 }}>
                           {def.label}
                         </span>
                         {isActive && (
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2.5">
                             <polyline points="20 6 9 17 4 12"/>
                           </svg>
                         )}
@@ -2883,7 +2883,7 @@ export default function MessageList() {
                     padding: '3px 0', cursor: 'pointer', borderRadius: 4,
                   }}
                 >
-                  <code style={{ fontSize: 12, color: 'var(--accent)', fontFamily: 'monospace' }}>{op}</code>
+                  <code style={{ fontSize: 12, color: 'var(--accent-fg)', fontFamily: 'monospace' }}>{op}</code>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{desc}</span>
                 </div>
               ))}
@@ -2978,7 +2978,7 @@ export default function MessageList() {
                     borderRadius: 100,
                     border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
                     background: 'none',
-                    color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                    color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
                     cursor: 'pointer', fontSize: 11, fontWeight: isActive ? 500 : 400,
                     whiteSpace: 'nowrap',
                     transition: 'color 0.15s, border-color 0.15s',
@@ -3015,7 +3015,7 @@ export default function MessageList() {
                   padding: '3px 11px', flexShrink: 0, borderRadius: 100,
                   border: `1px solid ${activeGtdTab === null ? 'var(--accent)' : 'var(--border)'}`,
                   background: 'none',
-                  color: activeGtdTab === null ? 'var(--accent)' : 'var(--text-secondary)',
+                  color: activeGtdTab === null ? 'var(--accent-fg)' : 'var(--text-secondary)',
                   cursor: 'pointer', fontSize: 11, fontWeight: activeGtdTab === null ? 600 : 400,
                   whiteSpace: 'nowrap', transition: 'color 0.15s, border-color 0.15s',
                   display: 'flex', alignItems: 'center', gap: 5,
@@ -3116,7 +3116,7 @@ export default function MessageList() {
                 opacity: Math.min(pullDistance / 32, 1),
                 transform: syncing ? 'none' : `rotate(${pullDistance >= 64 ? 180 : 0}deg)`,
                 transition: 'transform 0.2s ease',
-                color: 'var(--accent)',
+                color: 'var(--accent-fg)',
                 display: 'flex',
               }}>
                 {syncing ? (
@@ -3133,7 +3133,7 @@ export default function MessageList() {
               </div>
               {pullDistance > 20 && !syncing && (
                 <div style={{
-                  fontSize: 11, color: 'var(--accent)', fontWeight: 500,
+                  fontSize: 11, color: 'var(--accent-fg)', fontWeight: 500,
                   opacity: Math.min((pullDistance - 20) / 20, 1),
                   transition: 'opacity 0.1s',
                 }}>
@@ -3278,7 +3278,7 @@ export default function MessageList() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" d="M22,10.91v7.09c0,1.1-.9,2-2,2H4c-1.1,0-2-.9-2-2V6c0-1.1.9-2,2-2h11"/>
                   <polyline strokeLinecap="round" points="16.36 9.95 12 13 2 6"/>
-                  <circle cx="19.96" cy="6" r="3" fill="var(--accent)" stroke="var(--accent)"/>
+                  <circle cx="19.96" cy="6" r="3" fill="var(--accent-fg)" stroke="var(--accent-fg)"/>
                 </svg>
               )}
             </BulkBtn>
@@ -3641,7 +3641,7 @@ export default function MessageList() {
                     color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12,
                     transition: 'all 0.1s',
                   }}
-                  onMouseEnter={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent)'; }}
+                  onMouseEnter={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent-fg)'; }}
                   onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--text-secondary)'; }}
                 >
                   {t('messageList.loadMore')}
@@ -3675,7 +3675,7 @@ export default function MessageList() {
                     color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12,
                     transition: 'all 0.1s',
                   }}
-                  onMouseEnter={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent)'; }}
+                  onMouseEnter={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent-fg)'; }}
                   onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--text-secondary)'; }}
                 >
                   {t('messageList.loadMore')}
@@ -3710,7 +3710,7 @@ export default function MessageList() {
                 onClick={() => loadPage(currentPage - 1)}
                 disabled={currentPage <= 1}
                 style={btnStyle(currentPage <= 1)}
-                onMouseEnter={e => { if (currentPage > 1) { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent)'; }}}
+                onMouseEnter={e => { if (currentPage > 1) { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent-fg)'; }}}
                 onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = currentPage <= 1 ? 'var(--text-tertiary)' : 'var(--text-secondary)'; }}
               >← {t('messageList.prevPage')}</button>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
@@ -3720,7 +3720,7 @@ export default function MessageList() {
                 onClick={() => loadPage(currentPage + 1)}
                 disabled={currentPage >= totalPages}
                 style={btnStyle(currentPage >= totalPages)}
-                onMouseEnter={e => { if (currentPage < totalPages) { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent)'; }}}
+                onMouseEnter={e => { if (currentPage < totalPages) { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent-fg)'; }}}
                 onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = currentPage >= totalPages ? 'var(--text-tertiary)' : 'var(--text-secondary)'; }}
               >{t('messageList.nextPage')} →</button>
             </div>
@@ -3744,7 +3744,7 @@ export default function MessageList() {
               transition: 'color 0.15s, border-color 0.15s',
               animation: 'fade-in 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-fg)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -3873,7 +3873,7 @@ function UndoBar({ notification, onDismiss, showTopBorder }) {
         onClick={handleUndo}
         style={{
           background: 'none', border: 'none',
-          color: 'var(--accent)', fontSize: 13, fontWeight: 600,
+          color: 'var(--accent-fg)', fontSize: 13, fontWeight: 600,
           cursor: 'pointer', padding: '2px 4px', flexShrink: 0,
         }}
         onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
@@ -3947,7 +3947,7 @@ function EmptyState({ folderSyncing, searchQuery, unreadOnly, selectedFolder, ac
         <div style={{
           width: 48, height: 48, borderRadius: 14, margin: '0 auto 16px',
           background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--accent)',
+          color: 'var(--accent-fg)',
         }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <polyline points="20 6 9 17 4 12"/>
@@ -4594,7 +4594,7 @@ function BulkBtn({ children, onClick, title, disabled, danger }) {
         cursor: disabled ? 'not-allowed' : 'pointer',
         border: `1px solid ${hov && !disabled ? (danger ? 'var(--red, #ef4444)' : 'var(--accent)') : 'var(--border)'}`,
         background: hov && !disabled ? (danger ? 'rgba(239,68,68,0.1)' : 'var(--accent-dim)') : 'var(--bg-tertiary)',
-        color: disabled ? 'var(--text-tertiary)' : (hov && danger ? 'var(--red, #ef4444)' : (hov ? 'var(--accent)' : 'var(--text-secondary)')),
+        color: disabled ? 'var(--text-tertiary)' : (hov && danger ? 'var(--red, #ef4444)' : (hov ? 'var(--accent-fg)' : 'var(--text-secondary)')),
         opacity: disabled ? 0.5 : 1,
         transition: 'all 0.15s',
         flexShrink: 0,

@@ -1151,7 +1151,7 @@ ${bodyContent}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      {aiResults[key]?.status === 'done' && <span style={{ fontSize: 9, color: 'var(--accent)', flexShrink: 0 }}>●</span>}
+      {aiResults[key]?.status === 'done' && <span style={{ fontSize: 9, color: 'var(--accent-fg)', flexShrink: 0 }}>●</span>}
     </div>
   );
 
@@ -1341,7 +1341,7 @@ ${bodyContent}
             <button
               onClick={() => setSelectedMessage(null)}
               style={{
-                background: 'none', border: 'none', color: 'var(--accent)',
+                background: 'none', border: 'none', color: 'var(--accent-fg)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                 gap: 2, padding: '4px 0', fontSize: 15, fontWeight: 500,
               }}
@@ -1576,7 +1576,7 @@ ${bodyContent}
           <button
             onClick={() => history.back()}
             style={{
-              background: 'none', border: 'none', color: 'var(--accent)',
+              background: 'none', border: 'none', color: 'var(--accent-fg)',
               cursor: 'pointer', display: 'flex', alignItems: 'center',
               gap: 2, padding: '4px 0', fontSize: 15, fontWeight: 500,
             }}
@@ -2023,7 +2023,7 @@ ${bodyContent}
             {aiStatus?.enabled && aiStatus?.features?.summarize && body && (
               <div style={{ position: 'relative' }} ref={aiMenuRef}>
                 <PaneBtn onClick={() => setShowAiMenu(v => !v)} title={t('message.aiActions')}
-                  style={Object.keys(aiResults).length ? { color: 'var(--accent)' } : {}}>
+                  style={Object.keys(aiResults).length ? { color: 'var(--accent-fg)' } : {}}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                     <path d="M5 3v4M19 17v4M3 5h4M17 19h4"/>
@@ -2219,7 +2219,7 @@ ${bodyContent}
                   href={`/api/mail/messages/${message.id}/attachments.zip`}
                   download
                   style={{
-                    fontSize: 12, color: 'var(--accent)', textDecoration: 'none',
+                    fontSize: 12, color: 'var(--accent-fg)', textDecoration: 'none',
                     display: 'flex', alignItems: 'center', gap: 4,
                   }}
                 >
@@ -2455,7 +2455,7 @@ ${bodyContent}
               fontSize: 12, color: 'var(--text-secondary)',
             }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="var(--accent)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                stroke="var(--accent-fg)" strokeWidth="2" style={{ flexShrink: 0 }}>
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
               <span>{t('message.remoteImagesBlocked')}</span>
@@ -2473,13 +2473,13 @@ ${bodyContent}
                 ].filter(Boolean).map(({ label, handler, disabled }) => (
                   <button key={label} onClick={handler} disabled={disabled}
                     style={{
-                      background: 'none', border: '1px solid var(--border)',
+                      background: 'var(--accent-dim)', border: '1px solid transparent',
                       borderRadius: 5, padding: '3px 9px', cursor: disabled ? 'default' : 'pointer',
-                      color: 'var(--accent)', fontSize: 11, fontWeight: 500,
+                      color: 'var(--accent-text)', fontSize: 11, fontWeight: 600,
                       opacity: disabled ? 0.5 : 1,
                     }}
-                    onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+                    onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; }}
                   >{label}</button>
                 ))}
               </div>
@@ -2856,7 +2856,7 @@ function AiResultBox({ result, canRegen, onRegen, onDismiss }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
         <span style={{
-          fontSize: 11, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase',
+          fontSize: 11, fontWeight: 600, color: 'var(--accent-fg)', textTransform: 'uppercase',
           letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {result.label}
@@ -2878,7 +2878,7 @@ function AiResultBox({ result, canRegen, onRegen, onDismiss }) {
           {!error && !loading && result.text && (
             <button onClick={handleCopy} title={copied ? t('message.aiCopied') : t('message.aiCopy')} aria-label={copied ? t('message.aiCopied') : t('message.aiCopy')} style={iconBtn}>
               {copied ? (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               ) : (

@@ -327,9 +327,9 @@ export default function LoginPage() {
                   background: 'var(--bg-tertiary)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.75">
                     <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>
-                    <circle cx="12" cy="16" r="1" fill="var(--accent)" stroke="none"/>
+                    <circle cx="12" cy="16" r="1" fill="var(--accent-fg)" stroke="none"/>
                   </svg>
                 </div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, color: 'var(--text-primary)' }}>
@@ -411,7 +411,7 @@ export default function LoginPage() {
                   background: 'var(--bg-tertiary)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.75">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                     <path d="m2 7 10 7 10-7"/>
                   </svg>
@@ -507,7 +507,7 @@ export default function LoginPage() {
                   background: 'var(--bg-tertiary)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.75">
                     <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/>
                   </svg>
                 </div>
@@ -587,9 +587,9 @@ export default function LoginPage() {
                   background: 'var(--bg-tertiary)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.75">
                     <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>
-                    <circle cx="12" cy="16" r="1" fill="var(--accent)" stroke="none"/>
+                    <circle cx="12" cy="16" r="1" fill="var(--accent-fg)" stroke="none"/>
                   </svg>
                 </div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, color: 'var(--text-primary)' }}>
@@ -690,7 +690,7 @@ export default function LoginPage() {
                   background: 'var(--bg-tertiary)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.75">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
                 </div>
@@ -903,7 +903,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setMode('forgot'); setError(''); }}
-                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', padding: '6px 0 0', display: 'block' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-fg)', fontSize: 12, cursor: 'pointer', padding: '6px 0 0', display: 'block' }}
                 >
                   {t('login.forgotPassword.link')}
                 </button>
@@ -981,7 +981,7 @@ export default function LoginPage() {
             <button
               onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
               style={{
-                background: 'none', border: 'none', color: 'var(--accent)',
+                background: 'none', border: 'none', color: 'var(--accent-fg)',
                 cursor: 'pointer', fontSize: 13, padding: 0,
               }}
             >

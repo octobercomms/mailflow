@@ -437,7 +437,7 @@ export default function ContactsPage() {
             <button
               onClick={startNew}
               style={{
-                background: 'none', border: 'none', color: 'var(--accent)',
+                background: 'none', border: 'none', color: 'var(--accent-fg)',
                 cursor: 'pointer', padding: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 minWidth: 44, minHeight: 44,
@@ -592,7 +592,7 @@ function ContactDetail({ contact: c, confirmDelete, saving, error, onEdit, onDel
         <DetailSection>
           {(c.emails || []).map((e, i) => (
             <DetailRow key={i} label={t(`contacts.emailTypes.${e.type || 'other'}`, { defaultValue: t('contacts.emailTypes.other') })}>
-              <a href={`mailto:${e.value}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{e.value}</a>
+              <a href={`mailto:${e.value}`} style={{ color: 'var(--accent-fg)', textDecoration: 'none' }}>{e.value}</a>
             </DetailRow>
           ))}
           {(c.phones || []).map((p, i) => (
@@ -826,7 +826,7 @@ const removeBtn = {
 const addFieldBtn = {
   background: 'transparent',
   border: 'none',
-  color: 'var(--accent)',
+  color: 'var(--accent-fg)',
   fontSize: 12, cursor: 'pointer',
   padding: '2px 0',
 };

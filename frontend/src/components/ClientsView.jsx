@@ -126,7 +126,7 @@ export default function ClientsView() {
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box',
                 padding: '7px 8px', borderRadius: 8, cursor: 'pointer', marginBottom: 2,
                 background: active ? 'var(--accent-dim)' : 'transparent',
-                color: active ? 'var(--accent)' : 'var(--text-primary)',
+                color: active ? 'var(--accent-fg)' : 'var(--text-primary)',
               }}>
               <span style={{ flex: 1, fontSize: 13.5, fontWeight: active ? 600 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.client}</span>
               <span title={c.hasBrief ? 'Brief ready' : 'No brief yet'} style={{
@@ -183,7 +183,7 @@ export default function ClientsView() {
                 : meta.refreshedAt
                   ? t('clients.autoMaintained', { defaultValue: 'AI-maintained from your mail.' })
                   : t('clients.notYet', { defaultValue: 'No brief yet — Rebuild from mail to create one, or type your own.' })}
-              {note && <span style={{ color: 'var(--accent)', marginLeft: 8 }}>· {note}</span>}
+              {note && <span style={{ color: 'var(--accent-fg)', marginLeft: 8 }}>· {note}</span>}
             </div>
 
             {error && <div style={{ color: 'var(--red, #e03131)', fontSize: 13, marginBottom: 10 }}>{error}</div>}

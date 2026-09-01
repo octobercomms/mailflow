@@ -2,7 +2,7 @@ export const THEMES = {
   october: {
     label: 'October',
     description: 'October brand — light & gold',
-    preview: ['#ffffff', '#f5f4ef', '#a67c00', '#000000'],
+    preview: ['#ffffff', '#f5f4ef', '#e7cd41', '#000000'],
     vars: {
       '--bg-primary': '#ffffff',
       '--bg-secondary': '#ffffff',
@@ -14,16 +14,20 @@ export const THEMES = {
       '--text-primary': '#000000',
       '--text-secondary': '#55524a',
       '--text-tertiary': '#8a877d',
-      // A deeper gold than the bright brand mark: the accent is used both as a fill
-      // (buttons, with dark text) AND as a foreground colour on white (icons, links,
-      // active states, unread dots) in ~360 places. Bright #e7cd41 is unreadable as
-      // foreground on white (~1.4:1); this deeper gold reads ~3.9:1 on white and still
-      // carries dark text at ~4.4:1 — legible in both roles. The bright brand gold lives
-      // on in the logo/favicon (separate assets), so the identity is unchanged.
-      '--accent': '#a67c00',
+      // Gold plays two roles, split into two tokens so each stays readable:
+      //   --accent    bold brand gold — a BACKGROUND only (primary buttons, active
+      //               fills), always paired with dark --accent-text on top.
+      //   --accent-fg deep gold — the FOREGROUND colour (icons, links, active-state
+      //               text, unread dots) on white or on the light --accent-dim fill.
+      // A single colour can't do both: bright #e7cd41 is unreadable as text on white
+      // (~1.4:1) and dark #7a5c00 looks muddy as a button fill. So primary actions are
+      // bold-yellow bg + black text/icons, secondary actions are light-yellow (--accent-dim)
+      // bg + deep-gold (--accent-fg) text/icons, and no gold is ever gold-on-gold text.
+      '--accent': '#e7cd41',
       '--accent-text': '#1a1a1a',
+      '--accent-fg': '#7a5c00',
       '--accent-dim': '#f6ecc2',
-      '--accent-glow': 'rgba(166,124,0,0.20)',
+      '--accent-glow': 'rgba(231,205,65,0.22)',
       '--green': '#2f9e44',
       '--red': '#e03131',
       '--amber': '#d9a520',
@@ -47,6 +51,7 @@ export const THEMES = {
       '--text-tertiary': '#5a5a6a',
       '--accent': '#7c6af7',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#7c6af7',
       '--accent-dim': '#3d3569',
       '--accent-glow': 'rgba(124,106,247,0.15)',
       '--green': '#4ade80',
@@ -72,6 +77,7 @@ export const THEMES = {
       '--text-tertiary': '#8888aa',
       '--accent': '#6366f1',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#6366f1',
       '--accent-dim': '#e0e0ff',
       '--accent-glow': 'rgba(99,102,241,0.12)',
       '--green': '#16a34a',
@@ -97,6 +103,7 @@ export const THEMES = {
       '--text-tertiary': '#5a5a6a',
       '--accent': '#4A9EDD',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#4A9EDD',
       '--accent-dim': '#10293f',
       '--accent-glow': 'rgba(74,158,221,0.15)',
       '--green': '#2FBD85',
@@ -122,6 +129,7 @@ export const THEMES = {
       '--text-tertiary': '#928374',
       '--accent': '#d79921',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#d79921',
       '--accent-dim': '#3c3401',
       '--accent-glow': 'rgba(215,153,33,0.15)',
       '--green': '#b8bb26',
@@ -147,6 +155,7 @@ export const THEMES = {
       '--text-tertiary': '#6c7086',
       '--accent': '#cba6f7',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#cba6f7',
       '--accent-dim': '#2a1f3d',
       '--accent-glow': 'rgba(203,166,247,0.15)',
       '--green': '#a6e3a1',
@@ -172,6 +181,7 @@ export const THEMES = {
       '--text-tertiary': '#9ca0b0',
       '--accent': '#8839ef',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#8839ef',
       '--accent-dim': '#e5d4fc',
       '--accent-glow': 'rgba(136,57,239,0.1)',
       '--green': '#40a02b',
@@ -197,6 +207,7 @@ export const THEMES = {
       '--text-tertiary': '#7b88a1',
       '--accent': '#88c0d0',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#88c0d0',
       '--accent-dim': '#1e3040',
       '--accent-glow': 'rgba(136,192,208,0.15)',
       '--green': '#a3be8c',
@@ -222,6 +233,7 @@ export const THEMES = {
       '--text-tertiary': '#565f89',
       '--accent': '#7aa2f7',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#7aa2f7',
       '--accent-dim': '#1a2342',
       '--accent-glow': 'rgba(122,162,247,0.15)',
       '--green': '#9ece6a',
@@ -247,6 +259,7 @@ export const THEMES = {
       '--text-tertiary': '#4a6068',
       '--accent': '#268bd2',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#268bd2',
       '--accent-dim': '#0a2a3d',
       '--accent-glow': 'rgba(38,139,210,0.15)',
       '--green': '#859900',
@@ -272,6 +285,7 @@ export const THEMES = {
       '--text-tertiary': '#6272a4',
       '--accent': '#bd93f9',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#bd93f9',
       '--accent-dim': '#2a1f45',
       '--accent-glow': 'rgba(189,147,249,0.15)',
       '--green': '#50fa7b',
@@ -297,6 +311,7 @@ export const THEMES = {
       '--text-tertiary': '#6e6a86',
       '--accent': '#c4a7e7',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#c4a7e7',
       '--accent-dim': '#2a1f3d',
       '--accent-glow': 'rgba(196,167,231,0.15)',
       '--green': '#9ccfd8',
@@ -322,6 +337,7 @@ export const THEMES = {
       '--text-tertiary': '#3a5880',
       '--accent': '#3b9eff',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#3b9eff',
       '--accent-dim': '#0a1e40',
       '--accent-glow': 'rgba(59,158,255,0.15)',
       '--green': '#4ade80',
@@ -347,6 +363,7 @@ export const THEMES = {
       '--text-tertiary': '#803080',
       '--accent': '#ff00aa',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#ff00aa',
       '--accent-dim': '#3d0025',
       '--accent-glow': 'rgba(255,0,170,0.18)',
       '--green': '#00ff9d',
@@ -372,6 +389,7 @@ export const THEMES = {
       '--text-tertiary': '#3a6644',
       '--accent': '#00c896',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#00c896',
       '--accent-dim': '#003325',
       '--accent-glow': 'rgba(0,200,150,0.15)',
       '--green': '#5af0a0',
@@ -397,6 +415,7 @@ export const THEMES = {
       '--text-tertiary': '#805030',
       '--accent': '#ff9900',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#ff9900',
       '--accent-dim': '#3d2200',
       '--accent-glow': 'rgba(255,153,0,0.15)',
       '--green': '#7cb87a',
@@ -422,6 +441,7 @@ export const THEMES = {
       '--text-tertiary': '#605840',
       '--accent': '#c8a840',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#c8a840',
       '--accent-dim': '#2d2000',
       '--accent-glow': 'rgba(200,168,64,0.15)',
       '--green': '#6ab87a',
@@ -447,6 +467,7 @@ export const THEMES = {
       '--text-tertiary': '#9a8868',
       '--accent': '#8b4513',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#8b4513',
       '--accent-dim': '#f0e8d8',
       '--accent-glow': 'rgba(139,69,19,0.12)',
       '--selection-bg': 'rgba(139,69,19,0.25)',
@@ -473,6 +494,7 @@ export const THEMES = {
       '--text-tertiary': '#505880',
       '--accent': '#4a90d9',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#4a90d9',
       '--accent-dim': '#0a1a30',
       '--accent-glow': 'rgba(74,144,217,0.15)',
       '--green': '#5ab880',
@@ -498,6 +520,7 @@ export const THEMES = {
       '--text-tertiary': '#75715e',
       '--accent': '#ae81ff',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#ae81ff',
       '--accent-dim': '#2a1f45',
       '--accent-glow': 'rgba(174,129,255,0.15)',
       '--green': '#a6e22e',
@@ -523,6 +546,7 @@ export const THEMES = {
       '--text-tertiary': '#888888',
       '--accent': '#f5e642',
       '--accent-text': '#000000',
+      '--accent-fg': '#f5e642',
       '--accent-dim': '#2a2600',
       '--accent-glow': 'rgba(245,230,66,0.15)',
       '--green': '#00ff00',
@@ -548,6 +572,7 @@ export const THEMES = {
       '--text-tertiary': '#806040',
       '--accent': '#d4773a',
       '--accent-text': '#ffffff',
+      '--accent-fg': '#d4773a',
       '--accent-dim': '#3d1800',
       '--accent-glow': 'rgba(212,119,58,0.15)',
       '--green': '#7aaa6a',
@@ -672,12 +697,16 @@ export function getInitialTheme() {
 
 // ── Effective accent (theme value, or a custom-CSS override of --accent) ───────
 
-// The accent actually in effect. A custom-CSS override of --accent wins over the
-// theme's declared value, so JS-driven chrome (favicon, PWA theme-color, the logo
-// mark) reads the *computed* value to match what var(--accent) resolves to in CSS.
-export function getEffectiveAccent(fallback = '#a67c00') {
+// The accent actually in effect, for JS-driven chrome (favicon, PWA theme-color, the
+// logo mark). These paint on light surfaces (white sidebar, browser tab), so they take
+// the readable FOREGROUND token --accent-fg, not the bold --accent fill — otherwise the
+// October logo is bright-yellow-on-white and vanishes. Falls back to --accent (a custom
+// theme may set only that), then the hard default. Reads the *computed* value so a
+// custom-CSS override is honoured.
+export function getEffectiveAccent(fallback = '#7a5c00') {
   try {
-    const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const cs = getComputedStyle(document.documentElement);
+    const v = cs.getPropertyValue('--accent-fg').trim() || cs.getPropertyValue('--accent').trim();
     return v || fallback;
   } catch { return fallback; }
 }

@@ -306,7 +306,7 @@ export default function TasksView() {
           {b.source === 'ai' && b.source_ref && (
             <button onClick={() => openSource(b)} title={t('tasksView.openEmail', { defaultValue: 'Open source email' })}
               style={{ ...iconBtn, marginTop: 2, color: 'var(--text-secondary)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.06))'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.06))'; e.currentTarget.style.color = 'var(--accent-fg)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
             </button>
@@ -350,7 +350,7 @@ export default function TasksView() {
                                 <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 3 }}>{t('tasksView.sources', { defaultValue: 'Sources' })}</div>
                                 {research[b.id].sources.map((s, i) => (
                                   <div key={i} style={{ fontSize: 12, marginBottom: 2 }}>
-                                    [{i + 1}] <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{s.title || s.url}</a>
+                                    [{i + 1}] <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-fg)' }}>{s.title || s.url}</a>
                                   </div>
                                 ))}
                               </div>
@@ -467,10 +467,10 @@ export default function TasksView() {
   const briefPanel = brief && brief.text && briefOpen ? (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
         </svg>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent-fg)', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>
           {t('tasksView.today', { defaultValue: 'Your brief' })}
           {brief.stale && <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}> · {t('tasksView.briefStale', { defaultValue: 'from an earlier day — “Brief me” to refresh' })}</span>}
         </span>
@@ -552,7 +552,7 @@ export default function TasksView() {
       <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'auto' }}>
         <div style={{ padding: '24px 32px 120px' }}>
           {toolbar}
-          {refreshMsg && <div style={{ color: 'var(--accent)', fontSize: 12.5, marginBottom: 12 }}>{refreshMsg}</div>}
+          {refreshMsg && <div style={{ color: 'var(--accent-fg)', fontSize: 12.5, marginBottom: 12 }}>{refreshMsg}</div>}
           {error && <div style={{ color: 'var(--red, #e03131)', fontSize: 13, marginBottom: 12 }}>{error}</div>}
           {narrow && briefPanel && <div style={{ marginBottom: 18 }}>{briefPanel}</div>}
           <div style={{ marginTop: 8 }}>{taskListBody}</div>
@@ -621,7 +621,7 @@ function TaskSettings({ embedded }) {
         <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
           {t('tasksView.settingsTitle', { defaultValue: 'What should Refresh read?' })}
         </div>
-        {saved && <span style={{ fontSize: 12.5, color: 'var(--accent)' }}>{t('common.saved', { defaultValue: 'Saved' })}</span>}
+        {saved && <span style={{ fontSize: 12.5, color: 'var(--accent-fg)' }}>{t('common.saved', { defaultValue: 'Saved' })}</span>}
         <button onClick={save} disabled={saving} style={btnStyle(true)}>
           {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save', { defaultValue: 'Save' })}
         </button>
@@ -673,7 +673,7 @@ function TaskSettings({ embedded }) {
                             fontSize: 12, padding: '3px 10px', borderRadius: 999, cursor: 'pointer',
                             border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
                             background: on ? 'var(--accent-dim)' : 'transparent',
-                            color: on ? 'var(--accent)' : 'var(--text-secondary)',
+                            color: on ? 'var(--accent-fg)' : 'var(--text-secondary)',
                           }}>
                           {f.name || f.path}
                         </button>

@@ -20,7 +20,11 @@ export default function OmiPrPanel({ message, bodyText }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);       // lookup result
   const [error, setError] = useState('');
-  const [collapsed, setCollapsed] = useState(false);
+  // Collapsed by default on every email (a compact header you expand when you want it);
+  // the choice is remembered across emails.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('omiPrCollapsed') !== 'false'; } catch { return true; }
+  });
   // Add-contact + log-coverage local state.
   const [savingContact, setSavingContact] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
@@ -101,12 +105,12 @@ export default function OmiPrPanel({ message, bodyText }) {
     <div style={card}>
       {/* Header */}
       <div
-        onClick={() => setCollapsed(c => !c)}
+        onClick={() => setCollapsed(c => { const n = !c; try { localStorage.setItem('omiPrCollapsed', String(n)); } catch { /* ignore */ } return n; })}
         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', cursor: 'pointer', borderBottom: collapsed ? 'none' : '1px solid var(--border-subtle)' }}
       >
         <span style={{
           fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'var(--accent)', background: 'var(--accent-dim)', padding: '2px 6px', borderRadius: 5,
+          color: 'var(--accent-fg)', background: 'var(--accent-dim)', padding: '2px 6px', borderRadius: 5,
         }}>OMI</span>
         <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {loading ? t('omi.looking', { defaultValue: 'Looking up sender…' })
@@ -166,7 +170,7 @@ export default function OmiPrPanel({ message, bodyText }) {
           )}
 
           {done && (
-            <div style={{ fontSize: 12, color: 'var(--accent)', background: 'var(--accent-dim)', padding: '6px 9px', borderRadius: 7 }}>
+            <div style={{ fontSize: 12, color: 'var(--accent-fg)', background: 'var(--accent-dim)', padding: '6px 9px', borderRadius: 7 }}>
               ✓ {done.text}
             </div>
           )}

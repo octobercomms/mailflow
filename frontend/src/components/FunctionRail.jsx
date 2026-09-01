@@ -47,7 +47,7 @@ export default function FunctionRail({ view, onChange, isMobile }) {
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               width: w - 12, padding: '8px 0', borderRadius: 12, cursor: 'pointer',
               border: 'none', background: active ? 'var(--accent-dim)' : 'transparent',
-              color: active ? 'var(--accent)' : 'var(--text-tertiary)',
+              color: active ? 'var(--accent-fg)' : 'var(--text-tertiary)',
               transition: 'background 0.15s, color 0.15s',
             }}
             onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-hover)'; }}

@@ -1421,7 +1421,7 @@ export default function Sidebar() {
                           display: 'flex', alignItems: 'center', gap: 6,
                           padding: '4px 10px 4px 26px', borderRadius: 7,
                           background: 'none', border: 'none', cursor: 'pointer',
-                          color: showingHidden ? 'var(--accent)' : 'var(--text-tertiary)',
+                          color: showingHidden ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                           fontSize: 11, width: '100%', transition: 'color 0.1s',
                         }}
                         onMouseEnter={e => e.currentTarget.style.color = showingHidden ? 'var(--accent)' : 'var(--text-secondary)'}
@@ -1632,10 +1632,10 @@ export default function Sidebar() {
               onTouchEnd={e => e.currentTarget.style.background = ''}
               onTouchCancel={e => e.currentTarget.style.background = ''}
             >
-              <span style={{ color: 'var(--accent)', display: 'flex', flexShrink: 0 }}>
+              <span style={{ color: 'var(--accent-fg)', display: 'flex', flexShrink: 0 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </span>
-              <span style={{ flex: 1, fontSize: 13, color: 'var(--accent)' }}>{t('sidebar.updateAvailable', { version: updateInfo.latest })}</span>
+              <span style={{ flex: 1, fontSize: 13, color: 'var(--accent-fg)' }}>{t('sidebar.updateAvailable', { version: updateInfo.latest })}</span>
             </div>
           )}
 
@@ -1698,7 +1698,7 @@ export default function Sidebar() {
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: showContacts ? 'var(--bg-hover)' : 'transparent',
-                color: showContacts ? 'var(--accent)' : 'var(--text-tertiary)',
+                color: showContacts ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                 transition: 'background 0.1s, color 0.1s',
               }}
               onMouseEnter={e => { if (!showContacts) { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}

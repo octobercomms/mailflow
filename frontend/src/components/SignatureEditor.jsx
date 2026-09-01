@@ -20,7 +20,7 @@ function ToolBtn({ onClick, title, active, children }) {
       style={{
         ...BTN,
         background: active || hov ? 'var(--bg-hover)' : 'none',
-        color: active ? 'var(--accent)' : 'var(--text-secondary)',
+        color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
       }}
     >
       {children}

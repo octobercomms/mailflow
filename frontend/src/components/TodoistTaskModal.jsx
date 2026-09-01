@@ -113,7 +113,7 @@ export default function TodoistTaskModal({ message, onClose }) {
           padding: '16px 18px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent-fg)">
               <path d="M21 0H3C1.35 0 0 1.35 0 3v3.858s3.854 2.24 4.098 2.38c.31.18.694.177 1.004 0 .26-.147 8.02-4.608 8.136-4.675.279-.161.58-.107.748-.01.164.097.606.348.84.48.232.134.221.502.013.622l-9.712 5.59c-.346.2-.69.204-1.048.002C3.478 10.907.998 9.463 0 8.882v2.02l4.098 2.38c.31.18.694.177 1.004 0 .26-.147 8.02-4.609 8.136-4.676.279-.16.58-.106.748-.008.164.096.606.347.84.48.232.133.221.5.013.62-.208.121-9.288 5.346-9.712 5.59-.346.2-.69.205-1.048.002C3.478 14.951.998 13.506 0 12.926v2.02l4.098 2.38c.31.18.694.177 1.004 0 .26-.147 8.02-4.609 8.136-4.676.279-.16.58-.106.748-.009.164.097.606.348.84.48.232.133.221.502.013.622l-9.712 5.59c-.346.199-.69.204-1.048.001C3.478 18.994.998 17.55 0 16.97V21c0 1.65 1.35 3 3 3h18c1.65 0 3-1.35 3-3V3c0-1.65-1.35-3-3-3z"/>
             </svg>
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -121,7 +121,7 @@ export default function TodoistTaskModal({ message, onClose }) {
             </span>
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-              background: 'rgba(99,102,241,0.15)', color: 'var(--accent)',
+              background: 'rgba(99,102,241,0.15)', color: 'var(--accent-fg)',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
               {t('todoist.betaLabel')}
@@ -205,7 +205,7 @@ export default function TodoistTaskModal({ message, onClose }) {
                             padding: '4px 10px', borderRadius: 20, fontSize: 12,
                             border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'),
                             background: active ? 'rgba(99,102,241,0.15)' : 'var(--bg-tertiary)',
-                            color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                            color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
                             cursor: 'pointer', transition: 'all 0.1s',
                           }}
                         >

@@ -84,7 +84,7 @@ export default function MessageHeaderModal({ messageId, subject, onClose, onSubj
               flexShrink: 0, padding: '6px 12px',
               background: copied ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
               border: `1px solid ${copied ? 'var(--accent)' : 'var(--border)'}`,
-              borderRadius: 7, color: copied ? 'var(--accent)' : 'var(--text-secondary)',
+              borderRadius: 7, color: copied ? 'var(--accent-fg)' : 'var(--text-secondary)',
               cursor: 'pointer', fontSize: 12,
               WebkitTapHighlightColor: 'transparent',
             }}
@@ -121,7 +121,7 @@ export default function MessageHeaderModal({ messageId, subject, onClose, onSubj
               }}>
                 <div style={{
                   fontSize: 10, fontWeight: isImportant ? 600 : 400,
-                  color: isImportant ? 'var(--accent)' : 'var(--text-tertiary)',
+                  color: isImportant ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                   fontFamily: 'JetBrains Mono, monospace',
                   textTransform: 'uppercase', letterSpacing: '0.04em',
                   marginBottom: 2,
@@ -192,7 +192,7 @@ export default function MessageHeaderModal({ messageId, subject, onClose, onSubj
               style={{
                 padding: '6px 12px', background: copied ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
                 border: `1px solid ${copied ? 'var(--accent)' : 'var(--border)'}`,
-                borderRadius: 7, color: copied ? 'var(--accent)' : 'var(--text-secondary)',
+                borderRadius: 7, color: copied ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 cursor: 'pointer', fontSize: 12,
               }}
             >
@@ -230,7 +230,7 @@ export default function MessageHeaderModal({ messageId, subject, onClose, onSubj
                     }}>
                       <td style={{
                         padding: '6px 12px 6px 0', verticalAlign: 'top',
-                        color: isImportant ? 'var(--accent)' : 'var(--text-tertiary)',
+                        color: isImportant ? 'var(--accent-fg)' : 'var(--text-tertiary)',
                         fontWeight: isImportant ? 600 : 400,
                         whiteSpace: 'nowrap', width: 200, fontFamily: 'JetBrains Mono, monospace',
                         fontSize: 11,

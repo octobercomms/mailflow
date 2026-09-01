@@ -145,7 +145,7 @@ export default function TaskListModal({ accountId, folder, folderLabel, onClose,
     background: active ? 'var(--accent-dim)' : 'none',
     border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
     borderRadius: 7, padding: '5px 10px', cursor: 'pointer',
-    color: active ? 'var(--accent)' : 'var(--text-secondary)',
+    color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
     fontSize: 12, fontWeight: 500, transition: 'all 0.15s',
   });
 
@@ -171,7 +171,7 @@ export default function TaskListModal({ accountId, folder, folderLabel, onClose,
           padding: '16px 18px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/>
               <path d="M19 14.5l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/>
             </svg>
@@ -277,7 +277,7 @@ export default function TaskListModal({ accountId, folder, folderLabel, onClose,
           <div style={{ overflowY: 'auto', padding: '8px 12px 12px', flex: 1 }}>
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '22px 10px', color: 'var(--text-secondary)', fontSize: 13 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" strokeWidth="2"
                   style={{ animation: 'spin 0.8s linear infinite' }}>
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
@@ -344,7 +344,7 @@ export default function TaskListModal({ accountId, folder, folderLabel, onClose,
                         <span
                           title={t('tasks.openThread', { defaultValue: 'Open the email thread' })}
                           style={{ flexShrink: 0, alignSelf: 'center', display: 'flex', color: 'var(--text-tertiary)' }}
-                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-fg)'; }}
                           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; }}
                         >
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

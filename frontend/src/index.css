@@ -275,7 +275,7 @@ body, #root {
   padding-left: 0.75em;
   color: var(--text-secondary);
 }
-.tiptap-compose .ProseMirror a { color: var(--accent); text-decoration: underline; }
+.tiptap-compose .ProseMirror a { color: var(--accent-fg); text-decoration: underline; }
 .tiptap-compose .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: var(--text-tertiary);
@@ -351,7 +351,7 @@ body, #root {
 .ai-markdown ul, .ai-markdown ol { margin: 4px 0 8px; padding-left: 20px; }
 .ai-markdown li { margin: 2px 0; }
 .ai-markdown li > ul, .ai-markdown li > ol { margin: 2px 0; }
-.ai-markdown a { color: var(--accent); text-decoration: underline; }
+.ai-markdown a { color: var(--accent-fg); text-decoration: underline; }
 .ai-markdown code {
   background: var(--bg-tertiary); padding: 1px 4px; border-radius: 4px;
   font-family: monospace; font-size: 0.9em;

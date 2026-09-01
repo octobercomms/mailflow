@@ -106,7 +106,7 @@ function ActionBar({ notification, onDismiss, isMobile }) {
           background: 'var(--accent-dim)',
           border: '1px solid rgba(124,106,247,0.3)',
           borderRadius: 6,
-          color: 'var(--accent)',
+          color: 'var(--accent-fg)',
           fontSize: 12, fontWeight: 600,
           padding: '4px 12px',
           cursor: 'pointer', flexShrink: 0,
@@ -181,7 +181,7 @@ function Toast({ notification, onDismiss, isMobile }) {
         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
         background: notification.type === 'error' ? 'rgba(248,113,113,0.15)' : 'var(--accent-dim)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: notification.type === 'error' ? 'var(--red)' : 'var(--accent)',
+        color: notification.type === 'error' ? 'var(--red)' : 'var(--accent-fg)',
       }}>
         {notification.type === 'error' ? (
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -230,7 +230,7 @@ function Toast({ notification, onDismiss, isMobile }) {
           onClick={handleUndo}
           style={{
             background: 'var(--accent-dim)', border: '1px solid rgba(124,106,247,0.3)',
-            borderRadius: 5, color: 'var(--accent)', fontSize: 11, fontWeight: 600,
+            borderRadius: 5, color: 'var(--accent-fg)', fontSize: 11, fontWeight: 600,
             padding: '3px 10px', cursor: 'pointer', flexShrink: 0,
             transition: 'background 0.12s',
           }}
