@@ -582,28 +582,6 @@ export const THEMES = {
   },
 };
 
-// ── Color helpers ────────────────────────────────────────────────────────────
-
-function hexToRgb(hex) {
-  return [
-    parseInt(hex.slice(1, 3), 16),
-    parseInt(hex.slice(3, 5), 16),
-    parseInt(hex.slice(5, 7), 16),
-  ];
-}
-
-function lighten(hex, t) {
-  return '#' + hexToRgb(hex)
-    .map(c => Math.min(255, Math.round(c + (255 - c) * t)).toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function darken(hex, t) {
-  return '#' + hexToRgb(hex)
-    .map(c => Math.round(c * (1 - t)).toString(16).padStart(2, '0'))
-    .join('');
-}
-
 function buildFaviconSvg(accent, count = 0) {
   // October mail mark: black envelope outline + accent (gold) asterisk. The
   // asterisk tracks the effective --accent so it matches the app; the envelope

@@ -378,6 +378,12 @@ const HARDCODED_OK = new Set([
   'from:amazon invoice',
   // Beta badge label — universally understood technical term, same in all languages
   'BETA',
+  // App / product brand name (October) — never translated
+  'October',
+  // Web-search provider brand names shown in the Research provider dropdown
+  'Tavily', 'Brave Search',
+  // HTTP request header name for the OMI PR add-on — protocol identifier, not UI copy
+  'X-OMI-Key',
 ]);
 
 // Matches: someAttr="string value" (not someAttr={...})
