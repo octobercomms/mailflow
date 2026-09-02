@@ -270,7 +270,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ marginBottom: 40, textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <LogoMark size={140} />
+            <LogoMark size={112} />
           </div>
           <p style={{ color: 'var(--text-tertiary)', fontSize: 14, margin: 0 }}>{t('login.tagline')}</p>
         </div>
