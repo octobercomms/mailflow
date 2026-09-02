@@ -583,9 +583,9 @@ export const THEMES = {
 };
 
 function buildFaviconSvg(accent, count = 0) {
-  // October mail mark: black envelope outline + accent (gold) asterisk. The
-  // asterisk tracks the effective --accent so it matches the app; the envelope
-  // stays October ink-black. Keeps the unread badge (top-right).
+  // October mail mark: accent tile + white envelope chevron. The tile tracks the
+  // effective --accent so the favicon matches the app. Keeps the unread badge
+  // (top-right). The mark's native 567px artwork is scaled into the 32px canvas.
   let badge = '';
   if (count > 0) {
     const label = count > 99 ? '99+' : String(count);
@@ -598,13 +598,10 @@ function buildFaviconSvg(accent, count = 0) {
             `fill="white" font-family="system-ui,sans-serif" font-weight="800" font-size="${fs}">${label}</text>`;
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
-  <rect x="2.5" y="8.5" width="19" height="15" rx="2.5" stroke="#231f20" stroke-width="2.2"/>
-  <path d="M3.5 10 L12 16.5 L20.5 10" stroke="#231f20" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <g stroke="${accent}" stroke-width="2.6" stroke-linecap="round">
-    <line x1="25.5" y1="18.5" x2="25.5" y2="29.5"/>
-    <line x1="20.7" y1="21.25" x2="30.3" y2="26.75"/>
-    <line x1="30.3" y1="21.25" x2="20.7" y2="26.75"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <g transform="scale(${32 / 567.028442})">
+    <rect fill="${accent}" width="567.028442" height="566.929134"/>
+    <polygon fill="#fff" points="284.047058 242.579784 0 126.610424 0 186.438427 284.306885 302.513988 284.343933 302.42329 284.383972 302.518566 567.028442 183.757946 567.028442 123.677624 284.047058 242.579784"/>
   </g>
   ${badge}
 </svg>`;
