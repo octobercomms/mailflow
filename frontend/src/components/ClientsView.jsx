@@ -31,7 +31,10 @@ export default function ClientsView() {
     finally { setLoadingList(false); }
   }, [selected]);
 
-  useEffect(() => { loadList(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    loadList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openClient = async (name) => {
     setSelected(name); setLoadingBrief(true); setError(''); setNote(''); dirty.current = false;

@@ -5003,7 +5003,7 @@ export class ImapManager {
       await withFreshClient(account, async (client) => {
         for (const folder of folders) {
           let serverUids;
-          let serverExists = null;
+          let serverExists;
           try {
             const lock = await client.getMailboxLock(folder);
             try {

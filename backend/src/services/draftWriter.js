@@ -79,7 +79,7 @@ function clientBriefFor(message, briefs, legend) {
 }
 
 // Draft one reply. Returns the plain-text body (no send, no store).
-export async function generateReplyDraft({ account, message, bodyText, cfg, briefBlock, voiceSamples, signature }) {
+export async function generateReplyDraft({ message, bodyText, cfg, briefBlock, voiceSamples, signature }) {
   const from = clip(message.from_name || message.from_email || 'the sender', 80);
   const voiceBlock = voiceSamples?.length
     ? 'HOW THE USER WRITES — match this voice (tone, length, greeting/sign-off habits). These are past replies of theirs, for STYLE ONLY; do not reuse their content:\n' +

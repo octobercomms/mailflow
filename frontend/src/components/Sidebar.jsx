@@ -360,6 +360,7 @@ export default function Sidebar() {
     }
 
     return bulkMoveSameAccount(msgs, targetFolder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
   // Same-account bulk move with optimistic removal + 4.5s undo (extracted so the drop

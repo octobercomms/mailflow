@@ -166,7 +166,7 @@ export default function TasksView() {
   const removeBlock = async (b, focusPrevId) => {
     setBlocks(bs => bs.filter(x => x.id !== b.id));
     if (focusPrevId) focusRef.current = { id: focusPrevId, atEnd: true };
-    try { await api.taskDelete(b.id); } catch {}
+    try { await api.taskDelete(b.id); } catch { /* best-effort: row already removed locally */ }
   };
 
   const onKeyDown = (e, b, idx) => {
@@ -200,7 +200,6 @@ export default function TasksView() {
       const startedAt = Date.now();
       const MAX_MS = 12 * 60 * 1000;
       let status;
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         await new Promise(r => setTimeout(r, 3000));
         status = await api.tasksRefreshStatus();
@@ -393,7 +392,7 @@ export default function TasksView() {
             }}
           />
           {openCount > 0 && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 999, padding: '1px 8px', flexShrink: 0 }}>{openCount}</span>}
-          <button onClick={() => removeBlock(h, blocks[hIdx - 1]?.id)} style={{ ...iconBtn, width: 22, height: 22, color: 'var(--text-tertiary)', fontSize: 16 }} title="Remove section">×</button>
+          <button onClick={() => removeBlock(h, blocks[hIdx - 1]?.id)} style={{ ...iconBtn, width: 22, height: 22, color: 'var(--text-tertiary)', fontSize: 16 }} title={t('tasksView.removeSection', { defaultValue: 'Remove section' })}>×</button>
         </div>
         {open && (
           <div style={{ paddingBottom: 10, paddingLeft: 19 }}>
@@ -448,7 +447,7 @@ export default function TasksView() {
               </button>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text || 'Mail'}</span>
               {count > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', borderRadius: 999, padding: '1px 9px', flexShrink: 0 }}>{count}</span>}
-              <button onClick={e => { e.stopPropagation(); removeBlock(a, blocks[aIdx - 1]?.id); }} style={{ ...iconBtn, width: 22, height: 22, color: 'var(--text-tertiary)', fontSize: 16 }} title="Remove account section">×</button>
+              <button onClick={e => { e.stopPropagation(); removeBlock(a, blocks[aIdx - 1]?.id); }} style={{ ...iconBtn, width: 22, height: 22, color: 'var(--text-tertiary)', fontSize: 16 }} title={t('tasksView.removeAccountSection', { defaultValue: 'Remove account section' })}>×</button>
             </div>
             {open && (
               <div style={{ paddingBottom: 6 }}>
@@ -474,7 +473,7 @@ export default function TasksView() {
           {t('tasksView.today', { defaultValue: 'Your brief' })}
           {brief.stale && <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}> · {t('tasksView.briefStale', { defaultValue: 'from an earlier day — “Brief me” to refresh' })}</span>}
         </span>
-        <button onClick={() => setBriefOpen(false)} style={rowDel} title="Hide">×</button>
+        <button onClick={() => setBriefOpen(false)} style={rowDel} title={t('tasksView.hideBrief', { defaultValue: 'Hide' })}>×</button>
       </div>
       <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.6, color: 'var(--text-primary)' }}>{brief.text}</div>
     </div>
@@ -653,7 +652,7 @@ function TaskSettings({ embedded }) {
             />
           </div>
 
-          {accounts.length === 0 && <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>No accounts.</div>}
+          {accounts.length === 0 && <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{t('tasksView.noAccounts', { defaultValue: 'No accounts.' })}</div>}
 
           {accounts.map(a => {
             const cfg = cfgFor(a.id);
@@ -679,7 +678,7 @@ function TaskSettings({ embedded }) {
                         </button>
                       );
                     })}
-                    {a.folders.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>No folders synced yet.</span>}
+                    {a.folders.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{t('tasksView.noFoldersSynced', { defaultValue: 'No folders synced yet.' })}</span>}
                   </div>
                 )}
               </div>

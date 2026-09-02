@@ -45,7 +45,7 @@ router.patch('/tasks/:id', requireAuth, async (req, res) => {
   if (text !== undefined)     { sets.push(`text = $${p++}`);     vals.push(String(text).slice(0, 2000)); }
   if (done !== undefined)     { sets.push(`done = $${p++}`);     vals.push(!!done); }
   if (kind !== undefined)     { if (!['heading','task'].includes(kind)) return res.status(400).json({ error: 'bad kind' }); sets.push(`kind = $${p++}`); vals.push(kind); }
-  if (priority !== undefined) { sets.push(`priority = $${p++}`); vals.push(priority); }
+  if (priority !== undefined) { sets.push(`priority = $${p}`); vals.push(priority); }
   if (!sets.length) return res.json({ ok: true });
   sets.push('updated_at = NOW()');
   const r = await query(

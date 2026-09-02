@@ -2249,7 +2249,7 @@ function ResearchCard() {
           {form.provider !== 'none' && (
             <div>
               <label style={lbl}>{t('admin.integrations.research.apiKey', { defaultValue: 'API key' })}</label>
-              <input style={inp} type="password" value={form.apiKey} placeholder="API key"
+              <input style={inp} type="password" value={form.apiKey} placeholder={t('admin.integrations.research.apiKey', { defaultValue: 'API key' })}
                 onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} />
             </div>
           )}
