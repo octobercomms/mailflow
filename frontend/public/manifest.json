@@ -15,7 +15,7 @@
       "src": "/icon-512.png?v=oct6",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "/icon-384.png?v=oct6",
