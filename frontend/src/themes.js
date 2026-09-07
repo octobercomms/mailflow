@@ -34,6 +34,38 @@ export const THEMES = {
     }
   },
 
+  octoberStudio: {
+    label: 'October Studio',
+    description: 'OMI family — dark rail, warm canvas, gold accent',
+    preview: ['#121110', '#f6f4ee', '#e7cd3f', '#16150f'],
+    vars: {
+      // Content panes ride on a warm off-white canvas with white cards; the
+      // near-black sidebar rail is applied by a theme-scoped remap in index.css
+      // (`[data-mf-theme="octoberStudio"] .mf-sidebar`), so these tokens only
+      // describe the light side of the OMI two-tone layout.
+      '--bg-primary': '#f6f4ee',
+      '--bg-secondary': '#ffffff',
+      '--bg-tertiary': '#efece3',
+      '--bg-elevated': '#ffffff',
+      '--bg-hover': '#f0ede3',
+      '--border': '#e5e1d6',
+      '--border-subtle': '#efece4',
+      '--text-primary': '#16150f',
+      '--text-secondary': '#5c574c',
+      '--text-tertiary': '#928d81',
+      // Same gold split as the October theme: bold gold as a background only,
+      // deep gold as the readable foreground on light surfaces.
+      '--accent': '#e7cd3f',
+      '--accent-text': '#1a1608',
+      '--accent-fg': '#8a6b09',
+      '--accent-dim': '#f6ecbf',
+      '--accent-glow': 'rgba(231,205,63,0.20)',
+      '--green': '#4f9a55',
+      '--red': '#c0472f',
+      '--amber': '#c8862a',
+    }
+  },
+
   dark: {
     label: 'Dark',
     description: 'Default dark theme',
@@ -729,6 +761,11 @@ export function applyTheme(themeName) {
   themeEl.textContent = `:root {\n${
     Object.entries(theme.vars).map(([k, v]) => `  ${k}: ${v};`).join('\n')
   }\n}`;
+
+  // Expose the active theme key on the root element so theme-scoped CSS in
+  // index.css (e.g. October Studio's dark sidebar rail) can target it. Falls
+  // back to 'dark' when an unknown name resolved to the dark theme above.
+  document.documentElement.setAttribute('data-mf-theme', THEMES[themeName] ? themeName : 'dark');
 
   // Recompute favicon + PWA theme-color + logo from the *effective* accent. If a
   // custom-CSS override of --accent is present, getComputedStyle picks it up here;

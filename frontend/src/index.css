@@ -384,3 +384,24 @@ body, #root {
   max-width: 100%;
   color-scheme: light;
 }
+
+/* ── October Studio theme: OMI-family dark sidebar rail ──────────────────────
+   The theme's own tokens (themes.js) keep the message list and reading pane on
+   a warm off-white canvas. Here we remap only the token values *within* the
+   sidebar subtree so the rail goes near-black like the OMI app, without editing
+   any of the sidebar's ~100 token references or affecting any other theme.
+   Scoped by the data-mf-theme attribute applyTheme() sets on <html>. The gold
+   --accent and the semantic green/red/amber are intentionally NOT remapped, so
+   the Compose pill, active state, and unread dots stay on-brand against dark. */
+:root[data-mf-theme="octoberStudio"] .mf-sidebar {
+  --bg-secondary: #121110;   /* rail background */
+  --bg-primary:   #1c1b18;   /* inputs inside the rail (rename / new folder) */
+  --bg-tertiary:  #26241f;   /* row hover */
+  --bg-elevated:  #26241f;   /* small count pills */
+  --bg-hover:     #26241f;
+  --text-primary:   #f1eee5;
+  --text-secondary: #b9b4a8;
+  --text-tertiary:  #8d8981;
+  --border:        #2c2a25;
+  --border-subtle: #221f18;
+}

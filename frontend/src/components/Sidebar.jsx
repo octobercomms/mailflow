@@ -844,7 +844,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div style={{
+    <div className="mf-sidebar" style={{
       width: sidebarCollapsed ? 60 : sidebarWidth,
       minWidth: sidebarCollapsed ? 60 : sidebarWidth,
       height: isMobile ? '100%' : '100%',
