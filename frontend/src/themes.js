@@ -47,7 +47,7 @@ export const THEMES = {
       // the reading pane is remapped to pure white in index.css so the app reads
       // black rail → off-white list → white message. bg-secondary stays white for
       // cards and the reading-pane surface.
-      '--bg-primary': '#f5f3ec',
+      '--bg-primary': '#faf9f5',
       '--bg-secondary': '#ffffff',
       '--bg-tertiary': '#eceae1',
       '--bg-elevated': '#ffffff',

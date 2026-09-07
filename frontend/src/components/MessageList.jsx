@@ -2821,6 +2821,7 @@ export default function MessageList() {
             </svg>
           </div>
           <input
+            className="mf-search"
             ref={searchInputRef}
             type="text"
             placeholder={t('messageList.search')}
@@ -2909,6 +2910,7 @@ export default function MessageList() {
               </svg>
             </div>
             <input
+              className="mf-search"
               ref={searchInputRef}
               type="text"
               placeholder={t('messageList.search')}

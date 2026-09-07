@@ -151,6 +151,9 @@ describe('freeTextTermCondition (oversized-body crash hotfix)', () => {
     const cond = freeTextTermCondition(3, 4);
     expect(cond).toContain('m.from_name ILIKE $3');
     expect(cond).toContain('m.from_email ILIKE $3');
+    // Recipients are searched too, so a bare address term finds sent mail.
+    expect(cond).toContain('m.to_addresses::text ILIKE $3');
+    expect(cond).toContain('m.cc_addresses::text ILIKE $3');
     expect(cond).toContain('m.subject ILIKE $3');
     expect(cond).toContain("m.search_vector @@ plainto_tsquery('english', $4)");
   });
