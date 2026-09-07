@@ -321,6 +321,88 @@ function decodeBody(buf, encoding, charset) {
   }
 }
 
+// Parse a block of MIME part headers into a lower-cased key → value map, unfolding
+// RFC 5322 continuation lines (a header wrapped onto lines that begin with whitespace).
+function parseMimeHeaders(str) {
+  const out = {};
+  const unfolded = String(str).replace(/\r?\n[ \t]+/g, ' ');
+  for (const line of unfolded.split(/\r?\n/)) {
+    const m = /^([\w-]+):\s?(.*)$/.exec(line);
+    if (m) out[m[1].toLowerCase()] = m[2];
+  }
+  return out;
+}
+
+// Does this buffer's opening look like a raw MIME multipart body — a boundary
+// delimiter line followed by part headers — rather than decoded content?
+function looksLikeRawMimeBuf(buf) {
+  if (!buf || buf.length === 0) return false;
+  const head = buf.slice(0, 600).toString('latin1');
+  return /(^|\r?\n)--\S/.test(head) && /(^|\r?\n)content-type:/i.test(head);
+}
+
+// Recover the real body from a raw MIME multipart buffer. Some malformed messages
+// (seen from certain Apple Mail clients) present a bodyStructure with no usable text
+// leaf, so the body fetch returns raw boundary + part-header text that would otherwise
+// render verbatim in the reading pane. This walks the boundaries, honours each part's
+// transfer encoding and charset, prefers text/html then text/plain, and recurses into
+// nested multiparts. Offsets are taken from a latin1 view so they map 1:1 onto buffer
+// bytes, letting decodeBody reassemble multi-byte charsets correctly. Bounded recursion.
+export function extractFromRawMime(buf, depth = 0) {
+  const out = { html: null, text: null };
+  if (!Buffer.isBuffer(buf) || buf.length === 0 || depth > 4) return out;
+  const s = buf.toString('latin1');
+  const bm = s.match(/(?:^|\r?\n)--([^\r\n]+?)[ \t]*\r?\n/);
+  if (!bm) return out;
+  const token = bm[1].replace(/--+$/, '');
+  if (!token) return out;
+  const delim = `--${token}`;
+
+  let idx = s.indexOf(delim);
+  while (idx !== -1) {
+    const lineEnd = s.indexOf('\n', idx);
+    if (lineEnd === -1) break;
+    // A closing delimiter is "--token--"; stop once we reach it.
+    const afterToken = s.slice(idx + delim.length, lineEnd);
+    if (afterToken.trimStart().startsWith('--')) break;
+    const partStart = lineEnd + 1;
+    const next = s.indexOf(delim, partStart);
+    const partEnd = next === -1 ? s.length : next;
+
+    const seg = s.slice(partStart, partEnd);
+    const hb = seg.match(/\r?\n\r?\n/);
+    const headerStr = hb ? seg.slice(0, hb.index) : seg;
+    const bodyOffset = hb ? hb.index + hb[0].length : seg.length;
+    const bodyStart = partStart + bodyOffset;
+    // Trim the trailing CRLF that precedes the next boundary delimiter.
+    let bodyEnd = partEnd;
+    if (s[bodyEnd - 1] === '\n') bodyEnd -= (s[bodyEnd - 2] === '\r') ? 2 : 1;
+    if (bodyEnd < bodyStart) bodyEnd = bodyStart;
+
+    const headers = parseMimeHeaders(headerStr);
+    const ctRaw = headers['content-type'] || '';
+    const ct = ctRaw.toLowerCase();
+    const cte = (headers['content-transfer-encoding'] || '').trim().toLowerCase();
+    const csMatch = /charset=("?)([^";\r\n]+)\1/i.exec(ctRaw);
+    const charset = csMatch ? csMatch[2].trim() : 'utf-8';
+    const bodyBuf = buf.slice(bodyStart, bodyEnd);
+
+    if (ct.startsWith('multipart/')) {
+      const nested = extractFromRawMime(bodyBuf, depth + 1);
+      if (nested.html && !out.html) out.html = nested.html;
+      if (nested.text && !out.text) out.text = nested.text;
+    } else if ((ct.startsWith('text/html') || ct.startsWith('application/xhtml+xml')) && !out.html) {
+      out.html = decodeBody(bodyBuf, cte, charset);
+    } else if (ct.startsWith('text/plain') && !out.text) {
+      out.text = decodeBody(bodyBuf, cte, charset);
+    }
+
+    if (next === -1) break;
+    idx = next;
+  }
+  return out;
+}
+
 function decodeAttachmentBuffer(buf, encoding) {
   const enc = (encoding || '').toLowerCase();
   if (enc === 'base64') {
@@ -4018,15 +4100,26 @@ export class ImapManager {
         const results = { textParts: [], attachments: [], inlineImages: [] };
         walkStructure(structure, results);
 
-        // Handle single-part root node (no childNodes, type is the content type)
+        // No text leaf found. Either the message is genuinely single-part, or its
+        // bodyStructure did not expose usable child parts (seen with some Apple Mail
+        // messages).
         if (results.textParts.length === 0) {
           const rootType = (structure.type || '').toLowerCase();
-          results.textParts.push({
-            part: structure.part || '1',
-            type: (rootType === 'text/html' || rootType === 'text/plain' || rootType === 'application/xhtml+xml') ? 'text/html' : 'text/plain',
-            encoding: structure.encoding || '',
-            charset: structure.parameters?.charset || 'utf-8',
-          });
+          if (rootType.startsWith('multipart/')) {
+            // Fetch the whole body via BODY[TEXT] and parse the MIME ourselves. Fetching
+            // BODY[1] here would return the raw boundary + part-header text of a nested
+            // multipart, which renders as gibberish in the reading pane.
+            results.textParts.push({
+              part: 'TEXT', type: 'text/html', encoding: '', charset: 'utf-8', rawMime: true,
+            });
+          } else {
+            results.textParts.push({
+              part: structure.part || '1',
+              type: (rootType === 'text/html' || rootType === 'text/plain' || rootType === 'application/xhtml+xml') ? 'text/html' : 'text/plain',
+              encoding: structure.encoding || '',
+              charset: structure.parameters?.charset || 'utf-8',
+            });
+          }
         }
 
         attachments = results.attachments;
@@ -4071,6 +4164,14 @@ export class ImapManager {
         for (const part of results.textParts) {
           const buf = prefetched.get(part.part);
           if (!buf) continue;
+          // Content that is (or unexpectedly still holds) a raw MIME multipart body gets
+          // parsed rather than shown verbatim — recovers the real text/html or text/plain.
+          if (part.rawMime || looksLikeRawMimeBuf(buf)) {
+            const r = extractFromRawMime(buf);
+            if (r.html && !html) html = r.html;
+            if (r.text && !text) text = r.text;
+            if (r.html || r.text) continue;
+          }
           const decoded = decodeBody(buf, part.encoding, part.charset);
           if (part.type === 'text/html' && !html) html = decoded;
           else if (part.type === 'text/plain' && !text) text = decoded;

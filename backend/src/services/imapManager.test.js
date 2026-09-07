@@ -11,7 +11,7 @@ vi.mock('../utils/redact.js', () => ({ redactEmail: vi.fn() }));
 vi.mock('./hostValidation.js', () => ({ resolveForConnection: vi.fn() }));
 vi.mock('./gtdTransitions.js', () => ({ runGtdTransitions: vi.fn(), threadKeysForMessageIds: vi.fn(), threadKeysInFolders: vi.fn() }));
 
-import { ImapManager, providerProfile, makeClientCfg, gtdRelocateGuard, insertCopiedSibling, deleteMessageCopyRow, emitAfterDeferredCopySync, emitGtdSectionsRefreshOnDelete, emitGtdSectionsRefreshIfEnabled, selectGtdReevalIds, ensureMailbox, runGtdSyncTick, createKeyedSemaphore, isConnectionRefusal, connectCooldownMs, effectiveSyncIntervalMs, folderSyncDue, planModseqSync, connectStaggerFor } from './imapManager.js';
+import { ImapManager, providerProfile, makeClientCfg, gtdRelocateGuard, insertCopiedSibling, deleteMessageCopyRow, emitAfterDeferredCopySync, emitGtdSectionsRefreshOnDelete, emitGtdSectionsRefreshIfEnabled, selectGtdReevalIds, ensureMailbox, runGtdSyncTick, createKeyedSemaphore, isConnectionRefusal, connectCooldownMs, effectiveSyncIntervalMs, folderSyncDue, planModseqSync, connectStaggerFor, extractFromRawMime } from './imapManager.js';
 import { query } from './db.js';
 import { invalidateGtdConfigCache } from './gtdConfig.js';
 import { runGtdTransitions, threadKeysInFolders } from './gtdTransitions.js';
@@ -1184,5 +1184,90 @@ describe('syncMessages — empty local cache vs nonempty server (wiring)', () =>
       { uid: true }
     );
     expect(query.mock.calls.some(([sql]) => sql.includes('UPDATE folders SET highest_modseq'))).toBe(false);
+  });
+});
+
+// ── extractFromRawMime — recover body from raw MIME multipart ─────────────────
+
+describe('extractFromRawMime', () => {
+  const CRLF = '\r\n';
+  const raw = (lines) => Buffer.from(lines.join(CRLF), 'utf-8');
+
+  it('extracts text/html from a multipart/alternative body', () => {
+    const buf = raw([
+      '--6a9d77eb_1f404301_552',
+      'Content-Type: text/plain; charset="utf-8"',
+      'Content-Transfer-Encoding: quoted-printable',
+      '',
+      'Hey! Thanks for reaching out!',
+      '--6a9d77eb_1f404301_552',
+      'Content-Type: text/html; charset="utf-8"',
+      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Disposition: inline',
+      '',
+      '<p>Hey! Thanks for reaching out!</p>',
+      '--6a9d77eb_1f404301_552--',
+      '',
+    ]);
+    const r = extractFromRawMime(buf);
+    expect(r.html).toBe('<p>Hey! Thanks for reaching out!</p>');
+    expect(r.text).toBe('Hey! Thanks for reaching out!');
+    // No boundary or part headers must leak into the recovered body.
+    expect(r.html).not.toContain('--6a9d77eb');
+    expect(r.html).not.toMatch(/content-type/i);
+  });
+
+  it('decodes quoted-printable and base64 parts', () => {
+    const b64 = Buffer.from('<p>café</p>', 'utf-8').toString('base64');
+    const buf = raw([
+      '--X',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: quoted-printable',
+      '',
+      'caf=C3=A9 =E2=80=94 done',
+      '--X',
+      'Content-Type: text/html; charset=utf-8',
+      'Content-Transfer-Encoding: base64',
+      '',
+      b64,
+      '--X--',
+      '',
+    ]);
+    const r = extractFromRawMime(buf);
+    expect(r.text).toBe('café — done');
+    expect(r.html).toBe('<p>café</p>');
+  });
+
+  it('recurses into a nested multipart', () => {
+    const buf = raw([
+      '--outer',
+      'Content-Type: multipart/alternative; boundary="inner"',
+      '',
+      '--inner',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      'plain body',
+      '--inner',
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      '<b>rich body</b>',
+      '--inner--',
+      '--outer',
+      'Content-Type: application/pdf; name="a.pdf"',
+      'Content-Disposition: attachment',
+      '',
+      'JVBERi0=',
+      '--outer--',
+      '',
+    ]);
+    const r = extractFromRawMime(buf);
+    expect(r.html).toBe('<b>rich body</b>');
+    expect(r.text).toBe('plain body');
+  });
+
+  it('returns nulls for non-MIME input', () => {
+    expect(extractFromRawMime(Buffer.from('just a plain body', 'utf-8'))).toEqual({ html: null, text: null });
+    expect(extractFromRawMime(Buffer.alloc(0))).toEqual({ html: null, text: null });
+    expect(extractFromRawMime(null)).toEqual({ html: null, text: null });
   });
 });
