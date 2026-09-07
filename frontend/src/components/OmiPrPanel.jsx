@@ -1,16 +1,18 @@
-// OMI (October Marketing Intelligence) PR panel — shown in the reading pane for any
-// staff member. On opening an email it looks the sender up in OMI (journalist/contact
+// OMI (October Marketing Intelligence) PR panel — a modal opened from the reading-pane
+// toolbar chip. On opening an email it looks the sender up in OMI (journalist/contact
 // profile + recent coverage), lets you capture an unknown sender as a contact, and log
 // the thread to a client's editorial log (OMI's Claude extraction fills in publication /
-// issue date / story from the body). All calls are proxied server-side; self-gates to
-// nothing when OMI isn't configured.
+// issue date / story from the body). All calls are proxied server-side. The component
+// stays mounted so the lookup runs and `onActiveChange` can tell the parent whether to
+// show the toolbar chip; it renders nothing until `open` is set. Self-gates to nothing
+// when OMI isn't configured.
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api.js';
 
 const STATUS_OPTS = ['pitched', 'confirmed', 'published', 'declined'];
 
-export default function OmiPrPanel({ message, bodyText }) {
+export default function OmiPrPanel({ message, bodyText, open, onClose, onActiveChange }) {
   const { t } = useTranslation();
   const email = (message?.from_email || '').trim();
   const senderName = message?.from_name || '';
@@ -20,12 +22,6 @@ export default function OmiPrPanel({ message, bodyText }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);       // lookup result
   const [error, setError] = useState('');
-  // Collapsed by default on every email (a compact header you expand when you want it);
-  // the choice is remembered across emails.
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('omiPrCollapsed') !== 'false'; } catch { return true; }
-  });
-  // Add-contact + log-coverage local state.
   const [savingContact, setSavingContact] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [clientId, setClientId] = useState('');
@@ -53,7 +49,11 @@ export default function OmiPrPanel({ message, bodyText }) {
     return () => { alive = false; };
   }, [enabled, email]);
 
-  if (!enabled || !email) return null;
+  // Report to the parent whether OMI has anything to show for this message, so the
+  // toolbar chip that opens this modal is only shown when it's useful.
+  useEffect(() => { onActiveChange?.(enabled && !!email); }, [enabled, email, onActiveChange]);
+
+  if (!enabled || !email || !open) return null;
 
   const clients = Array.isArray(data?.clients) ? data.clients : [];
   const matched = !!data?.matched;
@@ -90,10 +90,6 @@ export default function OmiPrPanel({ message, bodyText }) {
     finally { setLogging(false); }
   };
 
-  const card = {
-    border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-secondary)',
-    margin: '10px 0', overflow: 'hidden', fontSize: 13,
-  };
   const btn = (primary) => ({
     padding: '5px 11px', borderRadius: 7, fontSize: 12, fontWeight: 500, cursor: 'pointer',
     border: primary ? 'none' : '1px solid var(--border)',
@@ -102,32 +98,39 @@ export default function OmiPrPanel({ message, bodyText }) {
   });
 
   return (
-    <div style={card}>
-      {/* Header */}
-      <div
-        onClick={() => setCollapsed(c => { const n = !c; try { localStorage.setItem('omiPrCollapsed', String(n)); } catch { /* ignore */ } return n; })}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', cursor: 'pointer', borderBottom: collapsed ? 'none' : '1px solid var(--border-subtle)' }}
-      >
-        <span style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'var(--accent-fg)', background: 'var(--accent-dim)', padding: '2px 6px', borderRadius: 5,
-        }}>OMI</span>
-        <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {loading ? t('omi.looking', { defaultValue: 'Looking up sender…' })
-            : matched ? (data.name || email)
-            : t('omi.unknownSender', { defaultValue: 'Unknown sender' })}
-        </span>
-        {matched && data.strength_label && (
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{data.strength_label}</span>
-        )}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s' }}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </div>
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 2100, background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: '100%', maxWidth: 460, maxHeight: '85vh', overflow: 'auto',
+        background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12,
+        boxShadow: '0 12px 40px rgba(0,0,0,0.3)', fontSize: 13,
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--accent-fg)', background: 'var(--accent-dim)', padding: '2px 6px', borderRadius: 5,
+          }}>OMI</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {loading ? t('omi.looking', { defaultValue: 'Looking up sender…' })
+              : matched ? (data.name || email)
+              : t('omi.unknownSender', { defaultValue: 'Unknown sender' })}
+          </span>
+          {matched && data.strength_label && (
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{data.strength_label}</span>
+          )}
+          <button onClick={onClose} title={t('common.close', { defaultValue: 'Close' })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
 
-      {!collapsed && (
-        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {/* Body */}
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9 }}>
           {error && <div style={{ color: 'var(--red, #e03131)', fontSize: 12 }}>{error}</div>}
 
           {matched && (
@@ -215,7 +218,7 @@ export default function OmiPrPanel({ message, bodyText }) {
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
