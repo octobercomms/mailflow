@@ -58,13 +58,16 @@ export const THEMES = {
       '--text-secondary': '#5c574c',
       '--text-tertiary': '#928d81',
       // Gold is reserved for bold calls to action only. --accent is the bold gold
-      // (Compose, primary buttons); --accent-fg is deep gold for links/icons on
-      // light. --accent-dim (secondary fills, selection, chips) and --accent-glow
-      // are deliberately NEUTRAL here — no pale-yellow washes — so notices read as
-      // quiet grey and the gold stays a signal.
+      // (Compose, primary buttons, logo). Everything that used to be a gold
+      // FOREGROUND — links, recipient-chip text, labels, active tab text — is
+      // neutralised via --accent-fg so no gold leaks onto secondary elements.
+      // (The dark sidebar/rail re-maps --accent-fg back to bright gold in
+      // index.css for its active indicator, OMI-style.) --accent-dim (secondary
+      // fills, selection, chips) and --accent-glow are neutral too — no pale
+      // yellow washes — so notices read as quiet grey.
       '--accent': '#e7cd3f',
       '--accent-text': '#1a1608',
-      '--accent-fg': '#8a6b09',
+      '--accent-fg': '#4a4640',
       '--accent-dim': '#edeae1',
       '--accent-glow': 'rgba(22,21,15,0.05)',
       '--green': '#4f9a55',
