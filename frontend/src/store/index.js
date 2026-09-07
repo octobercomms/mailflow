@@ -271,10 +271,13 @@ export const useStore = create((set, get) => ({
     schedulePrefSave({ scrollMode: mode });
   },
   // When true, search spans all folders instead of the current one (per device).
-  searchAllFolders: localStorage.getItem('mailflow_search_all_folders') === '1',
+  // Default ON: search spans all folders (incl. Sent) like Gmail, so a query
+  // finds mail you sent, not just the folder you're viewing. Users who want to
+  // scope to the current folder opt out, which stores '0'.
+  searchAllFolders: localStorage.getItem('mailflow_search_all_folders') !== '0',
   setSearchAllFolders: (v) => {
-    if (v) localStorage.setItem('mailflow_search_all_folders', '1');
-    else localStorage.removeItem('mailflow_search_all_folders');
+    if (v) localStorage.removeItem('mailflow_search_all_folders');
+    else localStorage.setItem('mailflow_search_all_folders', '0');
     set({ searchAllFolders: v });
   },
   swipeActions: (() => {

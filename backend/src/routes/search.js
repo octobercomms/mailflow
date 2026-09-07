@@ -109,12 +109,16 @@ export function trashFolderExclusionCondition() {
 export const FTS_BODY_CHAR_CAP = 600000;
 
 // Builds the per-term free-text OR-condition: a term matches if it appears in
-// the sender, the subject, the stored search_vector, or the length-capped body.
-// Extracted so the body cap is a single, testable source of truth.
+// the sender, any recipient (to/cc), the subject, the stored search_vector, or
+// the length-capped body. Searching recipients here (not only via the to:
+// operator) is what lets a bare address term find mail you SENT to someone, not
+// just mail from them. Extracted so the body cap is a single, testable source of truth.
 export function freeTextTermCondition(likeIdx, ftsIdx) {
   return `(
         m.from_name ILIKE $${likeIdx}
         OR m.from_email ILIKE $${likeIdx}
+        OR m.to_addresses::text ILIKE $${likeIdx}
+        OR m.cc_addresses::text ILIKE $${likeIdx}
         OR m.subject ILIKE $${likeIdx}
         OR m.search_vector @@ plainto_tsquery('english', $${ftsIdx})
         OR to_tsvector('english', LEFT(coalesce(m.body_text,''), ${FTS_BODY_CHAR_CAP})) @@ plainto_tsquery('english', $${ftsIdx})
