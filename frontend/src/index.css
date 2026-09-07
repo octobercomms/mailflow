@@ -417,3 +417,15 @@ body, #root {
 :root[data-mf-theme="octoberStudio"] .mf-readpane {
   --bg-primary: #ffffff;
 }
+
+/* OMI-style buttons: fully pill-shaped with bold labels. !important overrides
+   the per-button inline border-radius/font-weight set throughout the app. */
+:root[data-mf-theme="octoberStudio"] button {
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+
+/* Search bar sits white on the off-white message-list canvas. */
+:root[data-mf-theme="octoberStudio"] .mf-search {
+  background: #ffffff !important;
+}
