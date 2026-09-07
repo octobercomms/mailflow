@@ -393,8 +393,9 @@ body, #root {
    Scoped by the data-mf-theme attribute applyTheme() sets on <html>. The gold
    --accent and the semantic green/red/amber are intentionally NOT remapped, so
    the Compose pill, active state, and unread dots stay on-brand against dark. */
-:root[data-mf-theme="octoberStudio"] .mf-sidebar {
-  --bg-secondary: #121110;   /* rail background */
+:root[data-mf-theme="octoberStudio"] .mf-sidebar,
+:root[data-mf-theme="octoberStudio"] .mf-rail {
+  --bg-secondary: #121110;   /* rail / sidebar background */
   --bg-primary:   #1c1b18;   /* inputs inside the rail (rename / new folder) */
   --bg-tertiary:  #26241f;   /* row hover */
   --bg-elevated:  #26241f;   /* small count pills */
@@ -404,4 +405,15 @@ body, #root {
   --text-tertiary:  #8d8981;
   --border:        #2c2a25;
   --border-subtle: #221f18;
+  /* On the dark rail, gold foreground reads bright (the logo mark, active
+     Mail/Tasks icon, active account) and the active-item fill is a quiet dark
+     tint rather than the light-theme pale wash. */
+  --accent-fg:  #e7cd3f;
+  --accent-dim: #26241f;
+}
+
+/* Reading pane stays pure white, so the app steps black rail → off-white list
+   → white message. The list keeps the theme's warm --bg-primary. */
+:root[data-mf-theme="octoberStudio"] .mf-readpane {
+  --bg-primary: #ffffff;
 }
