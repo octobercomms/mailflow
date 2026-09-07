@@ -19,6 +19,11 @@ const MESSAGE_OPENING_EVENT = 'mailflow:message-opening';
 // render — same heuristic as ContextMenu.jsx, both files read this constant.
 const SPAM_NAME_RE = /(spam|junk|bulk|indesiderata|spamverdacht|courrier\s*ind|posta\s*indesiderata)/i;
 
+// Plain-text AI draft → safe HTML for the composer (escape, keep line breaks).
+const draftToHtml = (text) => String(text || '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/\r?\n/g, '<br>');
+
 // Lazy-load the div-renderer utilities so PostCSS is excluded from the flag-off
 // bundle. Rollup treats the import() calls inside this block as dead code when
 // USE_DIV_RENDER compiles to false, stripping PostCSS and both utility modules.
@@ -36,7 +41,6 @@ import MessageHeaderModal from './MessageHeaderModal.jsx';
 import FolderIcon from './FolderIcon.jsx';
 import TodoistTaskModal from './TodoistTaskModal.jsx';
 import OmiPrPanel from './OmiPrPanel.jsx';
-import AiDraftPanel from './AiDraftPanel.jsx';
 
 function parseAddressField(raw) {
   try {
@@ -285,6 +289,9 @@ export default function MessagePane() {
   // status: 'loading' | 'done' | 'error'. Restored from localStorage on message change.
   const [aiResults, setAiResults] = useState({});
   const [showAiMenu, setShowAiMenu] = useState(false);
+  const [showOmiModal, setShowOmiModal] = useState(false);
+  const [omiActive, setOmiActive] = useState(false);
+  const [draftingReply, setDraftingReply] = useState(false);
   const [aiClassifying, setAiClassifying] = useState(false);
   const [unsubscribeStatus, setUnsubscribeStatus] = useState(null); // null | 'loading' | 'done' | 'error'
   const moveBtnRef = useRef(null);
@@ -1053,6 +1060,32 @@ ${bodyContent}
     const found = (aiActions || []).find(a => a.id === key);
     return found?.label || fallback || key;
   }, [aiActions, t]);
+
+  // "Draft a reply with Claude" — invoked from the AI actions menu. Generates a
+  // reply draft in the user's voice, then opens the composer prefilled so they
+  // review and send (nothing is sent automatically). Replaces the old inline panel.
+  const canDraftReply = !!aiStatus?.enabled && !!message && !!body
+    && (accounts.find(a => a.id === message.account_id)?.email_address || '').toLowerCase()
+       !== (message.from_email || '').toLowerCase();
+
+  const runDraftReply = async () => {
+    if (!message?.message_id || draftingReply) return;
+    setShowAiMenu(false);
+    setDraftingReply(true);
+    try {
+      const r = await api.aiDraftGenerate(message.message_id);
+      const text = r?.draft?.body;
+      if (text) handleReply(false, draftToHtml(text));
+      else throw new Error(t('aiDraft.failBody', { defaultValue: 'No draft was returned' }));
+    } catch (e) {
+      addNotification({
+        title: t('aiDraft.failTitle', { defaultValue: 'Could not draft a reply' }),
+        body: e.message || '',
+      });
+    } finally {
+      setDraftingReply(false);
+    }
+  };
 
   // Run an AI action against the current message and stream the result into a
   // pinned box. Cached results are shown instantly unless force=true (Regenerate).
@@ -1976,6 +2009,11 @@ ${bodyContent}
           </div>
         ) : (
           <>
+            {omiActive && message && (
+              <PaneBtn onClick={() => setShowOmiModal(true)} title="OMI">
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em' }}>OMI</span>
+              </PaneBtn>
+            )}
             {hasSpamFolder && !inSpamFolder && message && (
               <PaneBtn onClick={() => performSingleSpamLabel('spam')} title={t('contextMenu.markAsSpam')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -2038,6 +2076,8 @@ ${bodyContent}
                     background: 'var(--bg-elevated, var(--bg-secondary))', border: '1px solid var(--border)',
                     borderRadius: 8, boxShadow: '0 6px 20px rgba(0,0,0,0.25)', padding: 4,
                   }}>
+                    {canDraftReply && renderAiItem('__draftReply', draftingReply ? t('aiDraft.drafting', { defaultValue: 'Drafting…' }) : t('aiDraft.generate', { defaultValue: 'Draft a reply with Claude' }), runDraftReply)}
+                    {canDraftReply && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />}
                     {renderAiItem(BUILTIN_SUMMARIZE.id, t('message.summarize'), () => runAiAction(BUILTIN_SUMMARIZE))}
                     {(aiActions || []).map(a => renderAiItem(a.id, a.label, () => runAiAction(a)))}
                     <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
@@ -2363,24 +2403,6 @@ ${bodyContent}
           </div>
         )}
       </div>
-
-      {/* OMI PR panel — sender lookup + log coverage. Self-gates to null when OMI is
-          not configured, so it's invisible unless staff have it set up. */}
-      {message && (
-        <div style={{ padding: isMobile ? '0 12px' : '0 28px' }}>
-          <OmiPrPanel
-            message={message}
-            bodyText={body?.text || (body?.html ? body.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '')}
-          />
-          {/* Auto-draft: a suggested reply waiting for review. Hidden on my own sent
-              mail and when AI is off. "Edit & send" opens the composer prefilled. */}
-          <AiDraftPanel
-            message={message}
-            aiEnabled={aiStatus?.enabled && (accounts.find(a => a.id === message.account_id)?.email_address || '').toLowerCase() !== (message.from_email || '').toLowerCase()}
-            onUseDraft={(html) => handleReply(false, html)}
-          />
-        </div>
-      )}
 
       {/* HTML email — iframe sized to full content height; outer container scrolls */}
       {!loadingBody && !bodyError && body?.html && (
@@ -2776,6 +2798,19 @@ ${bodyContent}
         <TodoistTaskModal
           message={message}
           onClose={() => setShowTodoistModal(false)}
+        />
+      )}
+
+      {/* OMI PR lookup. Always mounted while a message is open so the sender lookup
+          runs and it can report (via onActiveChange) whether to show the toolbar
+          chip; it only renders the modal when the chip is clicked. */}
+      {message && (
+        <OmiPrPanel
+          message={message}
+          bodyText={body?.text || (body?.html ? body.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '')}
+          open={showOmiModal}
+          onClose={() => setShowOmiModal(false)}
+          onActiveChange={setOmiActive}
         />
       )}
     </div>
