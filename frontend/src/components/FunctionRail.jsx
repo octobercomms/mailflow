@@ -29,7 +29,7 @@ export default function FunctionRail({ view, onChange, isMobile }) {
   const { t } = useTranslation();
   const w = isMobile ? 50 : 58;
   return (
-    <div style={{
+    <div className="mf-rail" style={{
       width: w, flexShrink: 0, height: '100%',
       background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',

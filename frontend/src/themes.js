@@ -43,23 +43,30 @@ export const THEMES = {
       // near-black sidebar rail is applied by a theme-scoped remap in index.css
       // (`[data-mf-theme="octoberStudio"] .mf-sidebar`), so these tokens only
       // describe the light side of the OMI two-tone layout.
-      '--bg-primary': '#f6f4ee',
+      // Message list / canvas rides on a warm off-white (matches the OMI app);
+      // the reading pane is remapped to pure white in index.css so the app reads
+      // black rail → off-white list → white message. bg-secondary stays white for
+      // cards and the reading-pane surface.
+      '--bg-primary': '#f5f3ec',
       '--bg-secondary': '#ffffff',
-      '--bg-tertiary': '#efece3',
+      '--bg-tertiary': '#eceae1',
       '--bg-elevated': '#ffffff',
-      '--bg-hover': '#f0ede3',
-      '--border': '#e5e1d6',
+      '--bg-hover': '#efece3',
+      '--border': '#e4e0d5',
       '--border-subtle': '#efece4',
       '--text-primary': '#16150f',
       '--text-secondary': '#5c574c',
       '--text-tertiary': '#928d81',
-      // Same gold split as the October theme: bold gold as a background only,
-      // deep gold as the readable foreground on light surfaces.
+      // Gold is reserved for bold calls to action only. --accent is the bold gold
+      // (Compose, primary buttons); --accent-fg is deep gold for links/icons on
+      // light. --accent-dim (secondary fills, selection, chips) and --accent-glow
+      // are deliberately NEUTRAL here — no pale-yellow washes — so notices read as
+      // quiet grey and the gold stays a signal.
       '--accent': '#e7cd3f',
       '--accent-text': '#1a1608',
       '--accent-fg': '#8a6b09',
-      '--accent-dim': '#f6ecbf',
-      '--accent-glow': 'rgba(231,205,63,0.20)',
+      '--accent-dim': '#edeae1',
+      '--accent-glow': 'rgba(22,21,15,0.05)',
       '--green': '#4f9a55',
       '--red': '#c0472f',
       '--amber': '#c8862a',

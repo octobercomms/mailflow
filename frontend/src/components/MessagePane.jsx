@@ -1328,7 +1328,7 @@ ${bodyContent}
 
   if (!message) {
     return (
-      <div style={{
+      <div className="mf-readpane" style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         background: 'var(--bg-primary)',
       }}>
@@ -1553,6 +1553,7 @@ ${bodyContent}
 
   return (
     <div
+      className="mf-readpane"
       ref={paneRef}
       style={{
         flex: 1, display: 'flex', flexDirection: 'column',
