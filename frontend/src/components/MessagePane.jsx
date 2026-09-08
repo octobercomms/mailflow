@@ -41,6 +41,7 @@ import MessageHeaderModal from './MessageHeaderModal.jsx';
 import FolderIcon from './FolderIcon.jsx';
 import TodoistTaskModal from './TodoistTaskModal.jsx';
 import OmiPrPanel from './OmiPrPanel.jsx';
+import ConversationView from './ConversationView.jsx';
 
 function parseAddressField(raw) {
   try {
@@ -101,7 +102,7 @@ export default function MessagePane() {
     imageWhitelist, addToImageWhitelist, blockRemoteImages, threadMessages,
     replyDefault, shortcuts, recentFolders, favoriteFolders, todoistConnected,
     categorizationEnabled, setCategoryCounts, adjustCategoryCount,
-    aiActions, setShowAdmin, setAdminTab,
+    aiActions, setShowAdmin, setAdminTab, threadedView,
   } = useStore();
 
   const isMobile = useMobile();
@@ -1584,6 +1585,17 @@ ${bodyContent}
 
   const attachments = body?.attachments || [];
 
+  // Stacked conversation view: when threaded view is on and the selected message belongs
+  // to a thread with more than one message, render the whole conversation as a stack of
+  // collapsible cards (ConversationView) instead of the single-message body. The toolbar
+  // above keeps acting on `message` (the selected, newest message).
+  const threadTid = message.thread_id;
+  const cachedThread = threadTid ? threadMessages[threadTid] : null;
+  const threadRowCount = Number.parseInt(message.message_count, 10);
+  const useConversationView =
+    threadedView && !searchQuery.trim() && !!threadTid &&
+    (threadRowCount > 1 || (Array.isArray(cachedThread) && cachedThread.length > 1));
+
   return (
     <div
       className="mf-readpane"
@@ -2105,7 +2117,10 @@ ${bodyContent}
         </PaneBtn>
       </div>
 
-      {/* Single scroll container — sender card + email body scroll together */}
+      {useConversationView ? (
+        <ConversationView rootMessage={message} isMobile={isMobile} defaultReplyAll={defaultReplyAll} />
+      ) : (
+      /* Single scroll container — sender card + email body scroll together */
       <div
         ref={scrollContainerRef}
         onScroll={e => setPaneScrolled(e.currentTarget.scrollTop > 4)}
@@ -2652,7 +2667,8 @@ ${bodyContent}
           />
         </div>
       )}
-      </div>{/* end single scroll container */}
+      </div>
+      )}{/* end single scroll container */}
 
       {/* Mobile move-to-folder bottom sheet */}
       {showMovePicker && isMobile && (
