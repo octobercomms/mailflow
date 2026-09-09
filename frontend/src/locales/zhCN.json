@@ -796,7 +796,10 @@
       "customFontTitle": "自定义字体",
       "customFontDescription": "上传 Brockmann 字体文件（.woff2、.woff、.ttf 或 .otf）。添加后即应用于整个应用。",
       "customFontDropzone": "将字体文件拖到此处，或点击选择",
-      "customFontEmpty": "尚未添加自定义字体"
+      "customFontEmpty": "尚未添加自定义字体",
+      "brandLogoTitle": "应用标志",
+      "brandLogoDescription": "替换应用左上角和登录界面显示的标志。支持 PNG、JPG、WebP 或动态 GIF。不会更改浏览器或应用图标。",
+      "brandLogoDropzone": "将标志图片拖到此处，或点击选择"
     },
     "messageList": {
       "title": "邮件列表",
@@ -872,7 +875,11 @@
       "defaultMailAppError": "浏览器已阻止该请求。",
       "markReadDelayLabel": "延迟",
       "markReadDelaySeconds": "{{count}} 秒",
-      "markReadDelaySeconds_other": "{{count}} 秒"
+      "markReadDelaySeconds_other": "{{count}} 秒",
+      "signatureOnReply": "回复中的签名",
+      "signatureOnReplyDesc": "新邮件始终包含签名。可选择回复和转发是否也包含。",
+      "signatureNewOnly": "仅新邮件",
+      "signatureAlways": "回复和转发也包含"
     },
     "notifications": {
       "title": "通知",

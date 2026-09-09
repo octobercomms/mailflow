@@ -395,6 +395,21 @@ export const useStore = create((set, get) => ({
     schedulePrefSave({ plaintextEmail: val });
   },
 
+  // Bumped after the app logo is uploaded/removed so every LogoMark re-fetches
+  // /api/branding/logo without a full page reload. Not persisted — the logo loads on its
+  // own at startup; this only forces an in-session refresh.
+  brandLogoVersion: 0,
+  bumpBrandLogo: () => set(state => ({ brandLogoVersion: state.brandLogoVersion + 1 })),
+
+  // Include the signature on replies and forwards. New emails always get the signature;
+  // this only controls replies/forwards. Off by default so replies stay clean.
+  signatureOnReply: localStorage.getItem('mailflow_signature_on_reply') === 'true',
+  setSignatureOnReply: (val) => {
+    localStorage.setItem('mailflow_signature_on_reply', String(val));
+    set({ signatureOnReply: val });
+    schedulePrefSave({ signatureOnReply: val });
+  },
+
   // Message list quick actions
   hoverQuickActions: localStorage.getItem('mailflow_hover_quick_actions') !== 'false',
   setHoverQuickActions: (val) => {
@@ -871,6 +886,10 @@ export const useStore = create((set, get) => ({
       if (typeof prefs.plaintextEmail === 'boolean') {
         localStorage.setItem('mailflow_plaintext_email', String(prefs.plaintextEmail));
         set({ plaintextEmail: prefs.plaintextEmail });
+      }
+      if (typeof prefs.signatureOnReply === 'boolean') {
+        localStorage.setItem('mailflow_signature_on_reply', String(prefs.signatureOnReply));
+        set({ signatureOnReply: prefs.signatureOnReply });
       }
       if (typeof prefs.hoverQuickActions === 'boolean') {
         localStorage.setItem('mailflow_hover_quick_actions', String(prefs.hoverQuickActions));

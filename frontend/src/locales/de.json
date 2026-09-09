@@ -729,7 +729,10 @@
       "customFontTitle": "Eigene Schrift",
       "customFontDescription": "Brockmann-Schriftdateien hochladen (.woff2, .woff, .ttf oder .otf). Sie gelten appweit, sobald sie hinzugefügt sind.",
       "customFontDropzone": "Schriftdateien hierher ziehen oder zum Auswählen klicken",
-      "customFontEmpty": "Noch keine eigenen Schriften hinzugefügt"
+      "customFontEmpty": "Noch keine eigenen Schriften hinzugefügt",
+      "brandLogoTitle": "App-Logo",
+      "brandLogoDescription": "Ersetzt das Logo oben links in der App und auf dem Anmeldebildschirm. PNG, JPG, WebP oder animiertes GIF. Das Browser- oder App-Symbol ändert sich dadurch nicht.",
+      "brandLogoDropzone": "Logo-Bild hierher ziehen oder zum Auswählen klicken"
     },
     "messageList": {
       "title": "Nachrichtenliste",
@@ -805,7 +808,11 @@
       "defaultMailAppError": "Ihr Browser hat die Anfrage blockiert.",
       "markReadDelayLabel": "Verzögerung",
       "markReadDelaySeconds": "{{count}} Sekunde",
-      "markReadDelaySeconds_other": "{{count}} Sekunden"
+      "markReadDelaySeconds_other": "{{count}} Sekunden",
+      "signatureOnReply": "Signatur bei Antworten",
+      "signatureOnReplyDesc": "Neue E-Mails enthalten immer deine Signatur. Lege fest, ob Antworten und Weiterleitungen sie ebenfalls enthalten.",
+      "signatureNewOnly": "Nur neue E-Mails",
+      "signatureAlways": "Auch Antworten & Weiterleitungen"
     },
     "notifications": {
       "title": "Benachrichtigungen",
