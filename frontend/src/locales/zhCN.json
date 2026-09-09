@@ -872,7 +872,11 @@
       "defaultMailAppError": "浏览器已阻止该请求。",
       "markReadDelayLabel": "延迟",
       "markReadDelaySeconds": "{{count}} 秒",
-      "markReadDelaySeconds_other": "{{count}} 秒"
+      "markReadDelaySeconds_other": "{{count}} 秒",
+      "signatureOnReply": "回复中的签名",
+      "signatureOnReplyDesc": "新邮件始终包含签名。可选择回复和转发是否也包含。",
+      "signatureNewOnly": "仅新邮件",
+      "signatureAlways": "回复和转发也包含"
     },
     "notifications": {
       "title": "通知",

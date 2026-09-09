@@ -175,7 +175,7 @@ function parseChips(val) {
 
 export default function ComposeModal() {
   const { t } = useTranslation();
-  const { closeCompose, composeData, accounts, addNotification, setSelectedAccount, plaintextEmail, setThreadMessages } = useStore();
+  const { closeCompose, composeData, accounts, addNotification, setSelectedAccount, plaintextEmail, signatureOnReply, setThreadMessages } = useStore();
   const isMobile = useMobile();
 
   const isReply = !!(composeData?.isReply || composeData?.isReplyAll);
@@ -264,6 +264,8 @@ export default function ComposeModal() {
   const fromSignature = fromAlias
     ? (fromAlias.signature !== null && fromAlias.signature !== undefined ? fromAlias.signature : fromAccount?.signature || null)
     : (fromAccount?.signature || null);
+  // New emails always get the signature; replies/forwards only when signatureOnReply is on.
+  const showSignature = !!fromSignature && (signatureOnReply || !(isReply || isForward));
 
   const getSuggestions = useCallback(async (q) => {
     try {
@@ -785,7 +787,7 @@ export default function ComposeModal() {
         ...(!plaintextEmail && (quotedBodyHtml != null || quotedHtmlRef.current)
           ? { quotedBodyHtml: quotedHtmlRef.current ? quotedHtmlRef.current.innerHTML : quotedBodyHtml }
           : {}),
-        ...(signatureContentRef.current || fromSignature != null
+        ...(showSignature && (signatureContentRef.current || fromSignature != null)
           ? { editedSignature: plaintextEmail ? plainSig : signatureContentRef.current }
           : {}),
         inReplyTo: composeData?.inReplyTo,
@@ -874,7 +876,7 @@ export default function ComposeModal() {
         ...(!plaintextEmail && (quotedBodyHtml != null || quotedHtmlRef.current)
           ? { quotedBodyHtml: quotedHtmlRef.current ? quotedHtmlRef.current.innerHTML : quotedBodyHtml }
           : {}),
-        ...(signatureContentRef.current || fromSignature != null
+        ...(showSignature && (signatureContentRef.current || fromSignature != null)
           ? { editedSignature: plaintextEmail ? plainSig : signatureContentRef.current }
           : {}),
         ...(draftUid != null && draftFolder != null ? { existingUid: draftUid, existingFolder: draftFolder } : {}),
@@ -1320,7 +1322,7 @@ export default function ComposeModal() {
           )}
 
           {/* Signature */}
-          {fromSignature && (
+          {showSignature && (
             <div style={{ padding: '0 16px 12px' }}>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '8px 0 6px', userSelect: 'none' }}>
                 -- signature
@@ -1967,7 +1969,7 @@ export default function ComposeModal() {
           </div>
         )}
 
-        {fromSignature ? (
+        {showSignature ? (
           <div style={{ padding: '0 14px 10px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, userSelect: 'none' }}>
               -- signature

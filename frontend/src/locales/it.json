@@ -872,7 +872,11 @@
       "defaultMailAppError": "Il browser ha bloccato la richiesta.",
       "markReadDelayLabel": "Ritardo",
       "markReadDelaySeconds": "{{count}} secondo",
-      "markReadDelaySeconds_other": "{{count}} secondi"
+      "markReadDelaySeconds_other": "{{count}} secondi",
+      "signatureOnReply": "Firma nelle risposte",
+      "signatureOnReplyDesc": "Le nuove email includono sempre la tua firma. Scegli se includerla anche nelle risposte e negli inoltri.",
+      "signatureNewOnly": "Solo nuove email",
+      "signatureAlways": "Anche risposte e inoltri"
     },
     "notifications": {
       "title": "Notifiche",

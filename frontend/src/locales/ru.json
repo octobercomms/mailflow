@@ -872,7 +872,11 @@
       "defaultMailAppError": "Браузер заблокировал запрос.",
       "markReadDelayLabel": "Задержка",
       "markReadDelaySeconds": "{{count}} секунда",
-      "markReadDelaySeconds_other": "{{count}} секунд"
+      "markReadDelaySeconds_other": "{{count}} секунд",
+      "signatureOnReply": "Подпись в ответах",
+      "signatureOnReplyDesc": "Новые письма всегда содержат подпись. Выберите, добавлять ли её в ответы и пересылки.",
+      "signatureNewOnly": "Только новые письма",
+      "signatureAlways": "Также ответы и пересылки"
     },
     "notifications": {
       "title": "Уведомления",

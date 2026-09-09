@@ -872,7 +872,11 @@
       "defaultMailAppError": "Tu navegador bloqueó la solicitud.",
       "markReadDelayLabel": "Retraso",
       "markReadDelaySeconds": "{{count}} segundo",
-      "markReadDelaySeconds_other": "{{count}} segundos"
+      "markReadDelaySeconds_other": "{{count}} segundos",
+      "signatureOnReply": "Firma en las respuestas",
+      "signatureOnReplyDesc": "Los correos nuevos siempre incluyen tu firma. Elige si las respuestas y los reenvíos también la incluyen.",
+      "signatureNewOnly": "Solo correos nuevos",
+      "signatureAlways": "También respuestas y reenvíos"
     },
     "notifications": {
       "title": "Notificaciones",

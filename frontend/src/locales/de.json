@@ -805,7 +805,11 @@
       "defaultMailAppError": "Ihr Browser hat die Anfrage blockiert.",
       "markReadDelayLabel": "Verzögerung",
       "markReadDelaySeconds": "{{count}} Sekunde",
-      "markReadDelaySeconds_other": "{{count}} Sekunden"
+      "markReadDelaySeconds_other": "{{count}} Sekunden",
+      "signatureOnReply": "Signatur bei Antworten",
+      "signatureOnReplyDesc": "Neue E-Mails enthalten immer deine Signatur. Lege fest, ob Antworten und Weiterleitungen sie ebenfalls enthalten.",
+      "signatureNewOnly": "Nur neue E-Mails",
+      "signatureAlways": "Auch Antworten & Weiterleitungen"
     },
     "notifications": {
       "title": "Benachrichtigungen",

@@ -872,7 +872,11 @@
       "gravatarOff": "Off",
       "gravatarOffDesc": "Private — never contacts a third party.",
       "gravatarOn": "On",
-      "gravatarOnDesc": "Fetch sender photos from Gravatar — shares hashed sender addresses with a third party."
+      "gravatarOnDesc": "Fetch sender photos from Gravatar — shares hashed sender addresses with a third party.",
+      "signatureOnReply": "Signature on replies",
+      "signatureOnReplyDesc": "New emails always include your signature. Choose whether replies and forwards include it too.",
+      "signatureNewOnly": "New emails only",
+      "signatureAlways": "Replies & forwards too"
     },
     "notifications": {
       "title": "Notifications",
