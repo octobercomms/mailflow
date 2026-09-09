@@ -398,7 +398,7 @@ body, #root {
    the Compose pill, active state, and unread dots stay on-brand against dark. */
 :root[data-mf-theme="octoberStudio"] .mf-sidebar,
 :root[data-mf-theme="octoberStudio"] .mf-rail {
-  --bg-secondary: #121110;   /* rail / sidebar background */
+  --bg-secondary: #000000;   /* rail / sidebar background (pure black, matches logo GIF) */
   --bg-primary:   #1c1b18;   /* inputs inside the rail (rename / new folder) */
   --bg-tertiary:  #26241f;   /* row hover */
   --bg-elevated:  #26241f;   /* small count pills */
