@@ -792,7 +792,11 @@
       "customCssDescription": "Inject additional CSS after the active theme. Use CSS custom properties (e.g. --accent, --bg-primary) to override theme values, or add your own rules. Applied to all users.",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "Save",
-      "customCssSaved": "Saved"
+      "customCssSaved": "Saved",
+      "customFontTitle": "Custom font",
+      "customFontDescription": "Upload Brockmann font files (.woff2, .woff, .ttf or .otf). They apply across the app once added.",
+      "customFontDropzone": "Drag font files here, or click to choose",
+      "customFontEmpty": "No custom fonts added yet"
     },
     "messageList": {
       "title": "Message List",

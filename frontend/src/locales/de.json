@@ -725,7 +725,11 @@
       "customCssDescription": "Fügt CSS nach dem aktiven Theme ein. Verwenden Sie CSS-Custom-Properties (z. B. --accent, --bg-primary), um Theme-Werte zu überschreiben oder eigene Regeln hinzuzufügen. Gilt für alle Benutzer.",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "Speichern",
-      "customCssSaved": "Gespeichert"
+      "customCssSaved": "Gespeichert",
+      "customFontTitle": "Eigene Schrift",
+      "customFontDescription": "Brockmann-Schriftdateien hochladen (.woff2, .woff, .ttf oder .otf). Sie gelten appweit, sobald sie hinzugefügt sind.",
+      "customFontDropzone": "Schriftdateien hierher ziehen oder zum Auswählen klicken",
+      "customFontEmpty": "Noch keine eigenen Schriften hinzugefügt"
     },
     "messageList": {
       "title": "Nachrichtenliste",

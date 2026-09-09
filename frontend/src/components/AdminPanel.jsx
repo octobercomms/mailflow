@@ -1316,6 +1316,133 @@ function FontsTab() {
           );
         })}
       </div>
+
+      <CustomFontUploader />
+    </div>
+  );
+}
+
+// ─── Custom font uploader ───────────────────────────────────────────────────────
+// Drag-and-drop upload for a self-hosted custom font (Brockmann). Files are stored
+// server-side and served at /api/fonts/custom/<name>; the active font set already
+// references the 'Brockmann' family with a DM Sans fallback, so uploads take effect
+// immediately once the generated /api/fonts/custom.css is re-fetched.
+function CustomFontUploader() {
+  const { t } = useTranslation();
+  const [fonts, setFonts] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef(null);
+
+  const refresh = () => api.customFontsList().then(d => setFonts(d.fonts || [])).catch(() => {});
+  useEffect(() => { refresh(); }, []);
+
+  // Re-fetch the generated stylesheet so newly uploaded/removed faces apply without a
+  // full page reload (the browser re-evaluates @font-face when the <link> href changes).
+  const reloadFontCss = () => {
+    const link = document.querySelector('link[href^="/api/fonts/custom.css"]');
+    if (link) link.setAttribute('href', `/api/fonts/custom.css?t=${Date.now()}`);
+  };
+
+  const uploadFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setBusy(true); setError('');
+    try {
+      for (const file of files) {
+        const buf = await file.arrayBuffer();
+        await api.customFontUpload(file.name, buf);
+      }
+      await refresh();
+      reloadFontCss();
+    } catch (err) {
+      setError(err.message || 'Upload failed');
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const remove = async (filename) => {
+    setBusy(true); setError('');
+    try {
+      await api.customFontDelete(filename);
+      await refresh();
+      reloadFontCss();
+    } catch (err) {
+      setError(err.message || 'Delete failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+        {t('admin.appearance.customFontTitle')}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 14 }}>
+        {t('admin.appearance.customFontDescription')}
+      </div>
+
+      <div
+        onClick={() => inputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); }}
+        style={{
+          border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
+          borderRadius: 10, padding: '22px 16px', textAlign: 'center', cursor: 'pointer',
+          background: dragOver ? 'var(--bg-hover)' : 'var(--bg-tertiary)',
+          color: 'var(--text-secondary)', fontSize: 13, transition: 'all 0.15s',
+        }}
+      >
+        {busy ? t('common.loading') : t('admin.appearance.customFontDropzone')}
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".woff2,.woff,.ttf,.otf"
+          multiple
+          onChange={e => uploadFiles(e.target.files)}
+          style={{ display: 'none' }}
+        />
+      </div>
+
+      {error && (
+        <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 8 }}>{error}</div>
+      )}
+
+      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {fonts.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            {t('admin.appearance.customFontEmpty')}
+          </div>
+        ) : fonts.map(f => (
+          <div key={f.filename} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+            background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: 8,
+          }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Brockmann', var(--font-sans)" }}>
+              {f.filename}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+              {Math.max(1, Math.round((f.size || 0) / 1024))} KB
+            </span>
+            <button
+              onClick={() => remove(f.filename)}
+              disabled={busy}
+              title={t('common.remove')}
+              style={{
+                background: 'none', border: 'none', cursor: busy ? 'default' : 'pointer',
+                color: 'var(--text-tertiary)', fontSize: 12, padding: 4, flexShrink: 0,
+              }}
+            >
+              {t('common.remove')}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
