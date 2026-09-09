@@ -792,7 +792,11 @@
       "customCssDescription": "Добавляет CSS после активной темы. Используйте CSS-переменные (например, --accent, --bg-primary) для переопределения значений темы или добавления собственных правил. Применяется ко всем пользователям.",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "Сохранить",
-      "customCssSaved": "Сохранено"
+      "customCssSaved": "Сохранено",
+      "customFontTitle": "Свой шрифт",
+      "customFontDescription": "Загрузите файлы шрифта Brockmann (.woff2, .woff, .ttf или .otf). Они применяются во всём приложении после добавления.",
+      "customFontDropzone": "Перетащите файлы шрифта сюда или нажмите, чтобы выбрать",
+      "customFontEmpty": "Пользовательские шрифты ещё не добавлены"
     },
     "messageList": {
       "title": "Список сообщений",

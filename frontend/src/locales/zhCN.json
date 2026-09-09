@@ -792,7 +792,11 @@
       "customCssDescription": "在当前主题之后注入额外的 CSS。使用 CSS 自定义属性（如 --accent、--bg-primary）覆盖主题值或添加自定义规则。对所有用户生效。",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "保存",
-      "customCssSaved": "已保存"
+      "customCssSaved": "已保存",
+      "customFontTitle": "自定义字体",
+      "customFontDescription": "上传 Brockmann 字体文件（.woff2、.woff、.ttf 或 .otf）。添加后即应用于整个应用。",
+      "customFontDropzone": "将字体文件拖到此处，或点击选择",
+      "customFontEmpty": "尚未添加自定义字体"
     },
     "messageList": {
       "title": "邮件列表",

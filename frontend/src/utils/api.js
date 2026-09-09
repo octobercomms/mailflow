@@ -177,6 +177,23 @@ export const api = {
     request('POST', `/mail/messages/${id}/move-to-account`, { toAccountId, toFolder }),
   getUnreadCounts: () => request('GET', '/mail/unread-counts'),
 
+  // Custom fonts (admin) — list, upload (raw bytes), delete.
+  customFontsList: () => request('GET', '/fonts/manage'),
+  customFontUpload: async (filename, arrayBuffer) => {
+    const res = await fetch(`${BASE}/fonts/upload?filename=${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { [CSRF_HEADER]: CSRF_VALUE, 'Content-Type': 'application/octet-stream' },
+      body: arrayBuffer,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    return res.json();
+  },
+  customFontDelete: (filename) => request('DELETE', `/fonts/manage/${encodeURIComponent(filename)}`),
+
   // Antispam (v0.1) — manual user feedback.
   // markSpam moves the message to the account's spam/junk folder and
   // records the decision in spam_training_log. markHam moves it back to

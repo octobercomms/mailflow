@@ -792,7 +792,11 @@
       "customCssDescription": "Inyecta CSS adicional después del tema activo. Usa propiedades CSS personalizadas (p. ej. --accent, --bg-primary) para anular los valores del tema o añadir tus propias reglas. Se aplica a todos los usuarios.",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "Guardar",
-      "customCssSaved": "Guardado"
+      "customCssSaved": "Guardado",
+      "customFontTitle": "Fuente personalizada",
+      "customFontDescription": "Sube los archivos de la fuente Brockmann (.woff2, .woff, .ttf u .otf). Se aplican en toda la aplicación al añadirlos.",
+      "customFontDropzone": "Arrastra los archivos de fuente aquí o haz clic para elegir",
+      "customFontEmpty": "Aún no se han añadido fuentes personalizadas"
     },
     "messageList": {
       "title": "Lista de mensajes",

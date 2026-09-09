@@ -792,7 +792,11 @@
       "customCssDescription": "Inserisce CSS aggiuntivo dopo il tema attivo. Usa proprietà CSS personalizzate (es. --accent, --bg-primary) per sovrascrivere i valori del tema o aggiungere regole proprie. Applicato a tutti gli utenti.",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "Salva",
-      "customCssSaved": "Salvato"
+      "customCssSaved": "Salvato",
+      "customFontTitle": "Font personalizzato",
+      "customFontDescription": "Carica i file del font Brockmann (.woff2, .woff, .ttf o .otf). Si applicano a tutta l’app una volta aggiunti.",
+      "customFontDropzone": "Trascina qui i file del font o fai clic per scegliere",
+      "customFontEmpty": "Nessun font personalizzato aggiunto"
     },
     "messageList": {
       "title": "Elenco messaggi",

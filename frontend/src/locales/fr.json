@@ -792,7 +792,11 @@
       "customCssDescription": "Injecte du CSS supplémentaire après le thème actif. Utilisez des propriétés CSS personnalisées (ex. --accent, --bg-primary) pour remplacer les valeurs du thème ou ajouter vos propres règles. Appliqué à tous les utilisateurs.",
       "customCssPlaceholder": ":root {\n  --accent: #e74c3c;\n}",
       "customCssSave": "Enregistrer",
-      "customCssSaved": "Enregistré"
+      "customCssSaved": "Enregistré",
+      "customFontTitle": "Police personnalisée",
+      "customFontDescription": "Importez les fichiers de police Brockmann (.woff2, .woff, .ttf ou .otf). Ils s’appliquent à toute l’application une fois ajoutés.",
+      "customFontDropzone": "Glissez les fichiers de police ici, ou cliquez pour choisir",
+      "customFontEmpty": "Aucune police personnalisée ajoutée pour l’instant"
     },
     "messageList": {
       "title": "Liste des messages",

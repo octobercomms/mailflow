@@ -31,6 +31,7 @@ import clientsRoutes from './routes/clients.js';
 import aiDraftsRoutes from './routes/aiDrafts.js';
 import researchRoutes from './routes/research.js';
 import categoriesRoutes from './routes/categories.js';
+import fontsRoutes from './routes/fonts.js';
 import gtdRoutes from './routes/gtd.js';
 import carddavRouter from './routes/carddav.js';
 import carddavAccountRouter from './routes/carddavAccount.js';
@@ -186,6 +187,7 @@ app.use('/api', clientsRoutes);
 app.use('/api', aiDraftsRoutes);
 app.use('/api', researchRoutes);
 app.use('/api', categoriesRoutes);
+app.use('/api', fontsRoutes);
 // Mounted at the /api/gtd subtree (not bare /api) so gtd.js's router-level
 // requireAuth cannot intercept the unauthenticated /api/health and /api/version
 // probes registered below. Its routes drop the gtd/ path prefix accordingly.
