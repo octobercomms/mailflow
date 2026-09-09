@@ -5,7 +5,21 @@
 
 export const FONT_SETS = {
   default: {
-    label: 'MailFlow Default',
+    label: 'Brockmann',
+    description: 'Brockmann — clean geometric grotesque',
+    preview: { heading: 'Brockmann', body: 'Brockmann', mono: 'JetBrains Mono' },
+    // Brockmann is a self-hosted custom font (public/fonts/brockmann/). Until those
+    // files are present it gracefully falls back to DM Sans, so the app never looks
+    // broken; once uploaded, Brockmann takes over automatically.
+    vars: {
+      '--font-sans': "'Brockmann', 'DM Sans', sans-serif",
+      '--font-mono': "'JetBrains Mono', monospace",
+      '--font-display': "'Brockmann', 'DM Sans', sans-serif",
+    },
+  },
+
+  classic: {
+    label: 'Classic',
     description: 'DM Sans × Fraunces — refined and contemporary',
     preview: { heading: 'Fraunces', body: 'DM Sans', mono: 'JetBrains Mono' },
     vars: {
