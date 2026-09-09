@@ -1604,6 +1604,27 @@ ${bodyContent}
     threadedView && !searchQuery.trim() && !!threadTid &&
     (threadRowCount > 1 || (Array.isArray(cachedThread) && cachedThread.length > 1));
 
+  // AI action results (summarize etc.) — rendered in both the single-message layout and
+  // the stacked conversation view, so the output always has somewhere to appear.
+  const aiResultsPanel = Object.keys(aiResults).length > 0 ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+      {Object.entries(aiResults).map(([key, result]) => {
+        const action = key === BUILTIN_SUMMARIZE.id
+          ? BUILTIN_SUMMARIZE
+          : (aiActions || []).find(a => a.id === key);
+        return (
+          <AiResultBox
+            key={key}
+            result={result}
+            canRegen={!!action}
+            onRegen={() => action && runAiAction(action, { force: true })}
+            onDismiss={() => dismissAiResult(key)}
+          />
+        );
+      })}
+    </div>
+  ) : null;
+
   return (
     <div
       className="mf-readpane"
@@ -2126,7 +2147,7 @@ ${bodyContent}
       </div>
 
       {useConversationView ? (
-        <ConversationView rootMessage={message} isMobile={isMobile} defaultReplyAll={defaultReplyAll} />
+        <ConversationView rootMessage={message} isMobile={isMobile} defaultReplyAll={defaultReplyAll} topSlot={aiResultsPanel} />
       ) : (
       /* Single scroll container — sender card + email body scroll together */
       <div
@@ -2340,24 +2361,7 @@ ${bodyContent}
         )}
 
         {/* AI action results — pinned boxes above the message (#204) */}
-        {Object.keys(aiResults).length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-            {Object.entries(aiResults).map(([key, result]) => {
-              const action = key === BUILTIN_SUMMARIZE.id
-                ? BUILTIN_SUMMARIZE
-                : (aiActions || []).find(a => a.id === key);
-              return (
-                <AiResultBox
-                  key={key}
-                  result={result}
-                  canRegen={!!action}
-                  onRegen={() => action && runAiAction(action, { force: true })}
-                  onDismiss={() => dismissAiResult(key)}
-                />
-              );
-            })}
-          </div>
-        )}
+        {aiResultsPanel}
 
         {/* Loading — skeleton body lines */}
         {loadingBody && (
