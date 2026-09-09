@@ -947,7 +947,7 @@ function normalizeSubject(subject) {
 // Compute the thread_id for an incoming message.
 // Primary: RFC 5322 References / In-Reply-To header chain.
 // Fallback: subject normalization when headers are absent (e.g. Outlook RE: replies).
-async function computeThreadId(accountId, messageId, inReplyTo, references, subject, msgDate) {
+export async function computeThreadId(accountId, messageId, inReplyTo, references, subject, msgDate) {
   if (!messageId) return null;
 
   const refIds = parseReferences(references);

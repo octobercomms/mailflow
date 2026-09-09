@@ -1298,33 +1298,41 @@ ${bodyContent}
   const handleMoveToFolder = useCallback((folder) => {
     if (!message) return;
     setShowMovePicker(false);
-    const moved = message;
-    removeMessage(moved.id);
-    if (!moved.is_read) decrementUnread(moved.account_id);
+    // Move the whole conversation when a thread is open: every message in this thread
+    // that lives in the same account (bulkMove is within one account). Falls back to the
+    // single message for non-threaded view or a one-message thread.
+    const subs = threadedView && message.thread_id ? threadMessages[message.thread_id] : null;
+    const moveList = (Array.isArray(subs) && subs.length > 1)
+      ? subs.filter(m => m && m.id && m.account_id === message.account_id)
+      : [message];
+    const ids = [...new Set(moveList.map(m => m.id))];
+    moveList.forEach(m => { removeMessage(m.id); if (!m.is_read) decrementUnread(m.account_id); });
+    const restoreAll = () => {
+      useStore.getState().restoreMessages(moveList);
+      moveList.forEach(m => { if (!m.is_read) incrementUnread(m.account_id); });
+    };
     let undone = false;
     const timer = setTimeout(async () => {
       if (undone) return;
       try {
-        await api.bulkMove([moved.id], folder);
-        useStore.getState().recordRecentFolder({ accountId: moved.account_id, path: folder });
+        await api.bulkMove(ids, folder);
+        useStore.getState().recordRecentFolder({ accountId: message.account_id, path: folder });
       } catch (err) {
         console.error('Move failed:', err);
-        useStore.getState().restoreMessages([moved]);
-        if (!moved.is_read) incrementUnread(moved.account_id);
+        restoreAll();
         addNotification({ title: t('message.moved.failTitle'), body: t('message.moved.failBody') });
       }
     }, 4500);
     addNotification({
       title: t('message.moved.title'),
-      body: folder,
+      body: ids.length > 1 ? t('messageList.bulkMoved.title', { count: ids.length }) : folder,
       onUndo: () => {
         undone = true;
         clearTimeout(timer);
-        useStore.getState().restoreMessages([moved]);
-        if (!moved.is_read) incrementUnread(moved.account_id);
+        restoreAll();
       },
     });
-  }, [message, removeMessage, decrementUnread, incrementUnread, addNotification, t]);
+  }, [message, threadedView, threadMessages, removeMessage, decrementUnread, incrementUnread, addNotification, t]);
 
   // Close move picker when the selected message changes and handle click-outside
   useEffect(() => {
