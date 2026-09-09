@@ -865,7 +865,7 @@ export default function Sidebar() {
       }}>
         {!sidebarCollapsed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <LogoMark size={32} />
+            <LogoMark size={64} />
           </div>
         )}
         <button
