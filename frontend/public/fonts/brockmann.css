@@ -1,0 +1,48 @@
+/* Custom self-hosted font: Brockmann.
+   Drop the .woff2 files into public/fonts/brockmann/ with the names below.
+   This file is separate from the generated fonts.css so it survives regeneration.
+   Any weight you don't provide simply falls back within the family — the app also
+   falls back to DM Sans until these files are present, so nothing looks broken. */
+
+@font-face {
+  font-family: 'Brockmann';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/brockmann/Brockmann-Regular.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Brockmann';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/brockmann/Brockmann-Medium.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Brockmann';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/brockmann/Brockmann-SemiBold.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Brockmann';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/brockmann/Brockmann-Bold.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Brockmann';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/brockmann/Brockmann-Italic.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Brockmann';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/brockmann/Brockmann-BoldItalic.woff2) format('woff2');
+}
