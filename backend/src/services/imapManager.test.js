@@ -11,7 +11,7 @@ vi.mock('../utils/redact.js', () => ({ redactEmail: vi.fn() }));
 vi.mock('./hostValidation.js', () => ({ resolveForConnection: vi.fn() }));
 vi.mock('./gtdTransitions.js', () => ({ runGtdTransitions: vi.fn(), threadKeysForMessageIds: vi.fn(), threadKeysInFolders: vi.fn() }));
 
-import { ImapManager, providerProfile, makeClientCfg, gtdRelocateGuard, insertCopiedSibling, deleteMessageCopyRow, emitAfterDeferredCopySync, emitGtdSectionsRefreshOnDelete, emitGtdSectionsRefreshIfEnabled, selectGtdReevalIds, ensureMailbox, runGtdSyncTick, createKeyedSemaphore, isConnectionRefusal, connectCooldownMs, effectiveSyncIntervalMs, folderSyncDue, planModseqSync, connectStaggerFor, extractFromRawMime } from './imapManager.js';
+import { ImapManager, providerProfile, makeClientCfg, gtdRelocateGuard, insertCopiedSibling, deleteMessageCopyRow, emitAfterDeferredCopySync, emitGtdSectionsRefreshOnDelete, emitGtdSectionsRefreshIfEnabled, selectGtdReevalIds, ensureMailbox, runGtdSyncTick, createKeyedSemaphore, isConnectionRefusal, connectCooldownMs, effectiveSyncIntervalMs, folderSyncDue, planModseqSync, connectStaggerFor, extractFromRawMime, computeThreadId } from './imapManager.js';
 import { query } from './db.js';
 import { invalidateGtdConfigCache } from './gtdConfig.js';
 import { runGtdTransitions, threadKeysInFolders } from './gtdTransitions.js';
@@ -1184,6 +1184,44 @@ describe('syncMessages — empty local cache vs nonempty server (wiring)', () =>
       { uid: true }
     );
     expect(query.mock.calls.some(([sql]) => sql.includes('UPDATE folders SET highest_modseq'))).toBe(false);
+  });
+});
+
+// ── computeThreadId — conversation threading (used by the rethread backfill) ──
+
+describe('computeThreadId', () => {
+  beforeEach(() => { query.mockReset(); });
+
+  it('returns null when the message has no Message-ID', async () => {
+    expect(await computeThreadId('acct', null, '<parent>', null, 'Re: Hi', new Date())).toBe(null);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('adopts the parent thread_id when In-Reply-To matches a known ancestor', async () => {
+    query.mockResolvedValueOnce({ rows: [{ message_id: '<parent>', thread_id: '<parent>' }] });
+    const tid = await computeThreadId('acct', '<child>', '<parent>', null, 'Re: Hi', new Date());
+    expect(tid).toBe('<parent>');
+  });
+
+  it('prefers the References root over a nearer ancestor', async () => {
+    query.mockResolvedValueOnce({ rows: [
+      { message_id: '<root>', thread_id: '<root>' },
+      { message_id: '<mid>', thread_id: '<root>' },
+    ] });
+    const tid = await computeThreadId('acct', '<child>', '<mid>', '<root> <mid>', 'Re: Hi', new Date());
+    expect(tid).toBe('<root>');
+  });
+
+  it('uses the referenced root as a provisional id when no ancestor is in the DB yet', async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    const tid = await computeThreadId('acct', '<child>', '<parent>', null, 'Re: Hi', new Date());
+    expect(tid).toBe('<parent>');
+  });
+
+  it('falls back to its own Message-ID when there are no headers and no subject match', async () => {
+    query.mockResolvedValueOnce({ rows: [] }); // subject-fallback lookup
+    const tid = await computeThreadId('acct', '<lonely>', null, null, 'Hello there', new Date());
+    expect(tid).toBe('<lonely>');
   });
 });
 

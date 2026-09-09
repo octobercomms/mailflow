@@ -2016,36 +2016,52 @@ export default function MessageList() {
         break;
       }
       case 'moveToAccount': {
-        // Cross-account move: relocate this single message into another account's
-        // folder (default INBOX). Threads can span accounts, so we intentionally
-        // move only the right-clicked message, not the whole thread. Optimistic
-        // removal with rollback on failure — no undo timer, since undoing means
-        // physically moving the message back across servers.
+        // Cross-account move: relocate the whole conversation into another account's
+        // folder (default INBOX). A thread can span accounts, so we move only the copies
+        // that live in this message's source account. Each copy is a separate IMAP move,
+        // run together with per-message rollback on failure — no undo timer, since undoing
+        // means physically moving the messages back across servers.
         const { toAccountId, toFolder } = data || {};
         if (!toAccountId || toAccountId === message.account_id) break;
-        const moved = message;
         const destAccount = accounts.find(a => a.id === toAccountId);
         const destName = destAccount?.email || destAccount?.name || 'account';
-        removeMessage(moved.id);
-        if (!moved.is_read) decrementUnread(moved.account_id);
-        if (selectedIds.has(moved.id)) {
+        let threadMsgs;
+        try {
+          threadMsgs = await resolveMessagesForThreadAction(message);
+        } catch {
+          threadMsgs = [message];
+        }
+        const moveList = (threadMsgs || [])
+          .filter(m => m && m.id && m.account_id === message.account_id);
+        const finalList = moveList.length ? moveList : [message];
+        const ids = [...new Set(finalList.map(m => m.id))];
+        finalList.forEach(m => { removeMessage(m.id); if (!m.is_read) decrementUnread(m.account_id); });
+        if (ids.some(id => selectedIds.has(id))) {
           const next = new Set(selectedIds);
-          next.delete(moved.id);
+          ids.forEach(id => next.delete(id));
           setSelectedIds(next);
           if (next.size === 0) setSelectionModeActive(false);
         }
-        try {
-          await api.moveToAccount(moved.id, toAccountId, toFolder);
+        const results = await Promise.allSettled(ids.map(id => api.moveToAccount(id, toAccountId, toFolder)));
+        const failed = [];
+        results.forEach((r, i) => { if (r.status === 'rejected') failed.push(finalList.find(m => m.id === ids[i])); });
+        if (failed.length) {
+          console.error('Cross-account move failed for', failed.length, 'message(s)');
+          useStore.getState().restoreMessages(failed.filter(Boolean));
+          failed.forEach(m => { if (m && !m.is_read) incrementUnread(m.account_id); });
+        }
+        const movedCount = ids.length - failed.length;
+        if (movedCount > 0) {
           addNotification({
             title: t('message.movedToAccount.title', { defaultValue: 'Moved to {{account}}', account: destName }),
-            body: moved.subject || t('common.noSubject'),
+            body: movedCount > 1
+              ? t('messageList.bulkMoved.title', { count: movedCount })
+              : (finalList[0]?.subject || t('common.noSubject')),
           });
           // Both accounts' unread badges changed — refresh authoritative counts.
           api.getUnreadCounts().then(c => useStore.getState().setUnreadCounts(c)).catch(() => {});
-        } catch (err) {
-          console.error('Cross-account move failed:', err.message);
-          useStore.getState().restoreMessages([moved]);
-          if (!moved.is_read) incrementUnread(moved.account_id);
+        }
+        if (failed.length) {
           addNotification({
             title: t('message.movedToAccount.failTitle', { defaultValue: 'Move failed' }),
             body: t('message.movedToAccount.failBody', { defaultValue: "Couldn't move the message to that account." }),
