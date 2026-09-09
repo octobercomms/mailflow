@@ -796,7 +796,10 @@
       "customFontTitle": "Custom font",
       "customFontDescription": "Upload Brockmann font files (.woff2, .woff, .ttf or .otf). They apply across the app once added.",
       "customFontDropzone": "Drag font files here, or click to choose",
-      "customFontEmpty": "No custom fonts added yet"
+      "customFontEmpty": "No custom fonts added yet",
+      "brandLogoTitle": "App logo",
+      "brandLogoDescription": "Replace the logo shown in the top-left of the app and on the login screen. PNG, JPG, WebP or animated GIF. This does not change the browser or app icon.",
+      "brandLogoDropzone": "Drag a logo image here, or click to choose"
     },
     "messageList": {
       "title": "Message List",

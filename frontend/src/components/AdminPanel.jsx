@@ -1318,6 +1318,7 @@ function FontsTab() {
       </div>
 
       <CustomFontUploader />
+      <BrandLogoUploader />
     </div>
   );
 }
@@ -1443,6 +1444,126 @@ function CustomFontUploader() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── App logo uploader ──────────────────────────────────────────────────────────
+// Drag-and-drop upload for the in-app logo (sidebar + login screen). Stored server-side
+// and served at /api/branding/logo; LogoMark shows it in place of the built-in mark.
+// Does NOT change the favicon / PWA app icon. Supports animated GIF.
+function BrandLogoUploader() {
+  const { t } = useTranslation();
+  const bumpBrandLogo = useStore(s => s.bumpBrandLogo);
+  const brandLogoVersion = useStore(s => s.brandLogoVersion);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const [hasLogo, setHasLogo] = useState(false);
+  const inputRef = useRef(null);
+
+  const upload = async (fileList) => {
+    const file = Array.from(fileList || [])[0];
+    if (!file) return;
+    setBusy(true); setError('');
+    try {
+      const buf = await file.arrayBuffer();
+      await api.brandLogoUpload(file.name, buf);
+      bumpBrandLogo();
+    } catch (err) {
+      setError(err.message || 'Upload failed');
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true); setError('');
+    try {
+      await api.brandLogoDelete();
+      bumpBrandLogo();
+    } catch (err) {
+      setError(err.message || 'Delete failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+        {t('admin.appearance.brandLogoTitle')}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 14 }}>
+        {t('admin.appearance.brandLogoDescription')}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files); }}
+          style={{
+            flex: 1,
+            border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
+            borderRadius: 10, padding: '22px 16px', textAlign: 'center', cursor: 'pointer',
+            background: dragOver ? 'var(--bg-hover)' : 'var(--bg-tertiary)',
+            color: 'var(--text-secondary)', fontSize: 13, transition: 'all 0.15s',
+          }}
+        >
+          {busy ? t('common.loading') : t('admin.appearance.brandLogoDropzone')}
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".gif,.png,.jpg,.jpeg,.webp,image/gif,image/png,image/jpeg,image/webp"
+            onChange={e => upload(e.target.files)}
+            style={{ display: 'none' }}
+          />
+        </div>
+
+        {/* Current logo preview — hidden (with the Remove button) when none is set. */}
+        <div style={{
+          width: 56, height: 56, borderRadius: 10, flexShrink: 0,
+          display: hasLogo ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', overflow: 'hidden',
+        }}>
+          <img
+            src={`/api/branding/logo?v=${brandLogoVersion}`}
+            alt=""
+            onLoad={() => setHasLogo(true)}
+            onError={() => setHasLogo(false)}
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          />
+        </div>
+        {hasLogo && (
+          <button
+            onClick={remove}
+            disabled={busy}
+            style={{
+              background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+              padding: '8px 12px', cursor: busy ? 'default' : 'pointer',
+              color: 'var(--text-secondary)', fontSize: 12, flexShrink: 0,
+            }}
+          >
+            {t('common.remove')}
+          </button>
+        )}
+      </div>
+
+      {/* Probe: keeps hasLogo in sync even before/without the preview box showing. */}
+      {!hasLogo && (
+        <img
+          src={`/api/branding/logo?v=${brandLogoVersion}`}
+          alt=""
+          onLoad={() => setHasLogo(true)}
+          onError={() => setHasLogo(false)}
+          style={{ display: 'none' }}
+        />
+      )}
+
+      {error && <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 8 }}>{error}</div>}
     </div>
   );
 }

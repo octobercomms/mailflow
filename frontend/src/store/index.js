@@ -395,6 +395,12 @@ export const useStore = create((set, get) => ({
     schedulePrefSave({ plaintextEmail: val });
   },
 
+  // Bumped after the app logo is uploaded/removed so every LogoMark re-fetches
+  // /api/branding/logo without a full page reload. Not persisted — the logo loads on its
+  // own at startup; this only forces an in-session refresh.
+  brandLogoVersion: 0,
+  bumpBrandLogo: () => set(state => ({ brandLogoVersion: state.brandLogoVersion + 1 })),
+
   // Include the signature on replies and forwards. New emails always get the signature;
   // this only controls replies/forwards. Off by default so replies stay clean.
   signatureOnReply: localStorage.getItem('mailflow_signature_on_reply') === 'true',

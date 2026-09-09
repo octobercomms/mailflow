@@ -796,7 +796,10 @@
       "customFontTitle": "Police personnalisée",
       "customFontDescription": "Importez les fichiers de police Brockmann (.woff2, .woff, .ttf ou .otf). Ils s’appliquent à toute l’application une fois ajoutés.",
       "customFontDropzone": "Glissez les fichiers de police ici, ou cliquez pour choisir",
-      "customFontEmpty": "Aucune police personnalisée ajoutée pour l’instant"
+      "customFontEmpty": "Aucune police personnalisée ajoutée pour l’instant",
+      "brandLogoTitle": "Logo de l’application",
+      "brandLogoDescription": "Remplace le logo affiché en haut à gauche de l’application et sur l’écran de connexion. PNG, JPG, WebP ou GIF animé. Cela ne change pas l’icône du navigateur ou de l’application.",
+      "brandLogoDropzone": "Glissez une image de logo ici, ou cliquez pour choisir"
     },
     "messageList": {
       "title": "Liste des messages",

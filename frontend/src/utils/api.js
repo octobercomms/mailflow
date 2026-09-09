@@ -194,6 +194,22 @@ export const api = {
   },
   customFontDelete: (filename) => request('DELETE', `/fonts/manage/${encodeURIComponent(filename)}`),
 
+  // App logo (admin) — upload (raw bytes) and remove.
+  brandLogoUpload: async (filename, arrayBuffer) => {
+    const res = await fetch(`${BASE}/branding/logo?filename=${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { [CSRF_HEADER]: CSRF_VALUE, 'Content-Type': 'application/octet-stream' },
+      body: arrayBuffer,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    return res.json();
+  },
+  brandLogoDelete: () => request('DELETE', '/branding/logo'),
+
   // Antispam (v0.1) — manual user feedback.
   // markSpam moves the message to the account's spam/junk folder and
   // records the decision in spam_training_log. markHam moves it back to

@@ -796,7 +796,10 @@
       "customFontTitle": "Fuente personalizada",
       "customFontDescription": "Sube los archivos de la fuente Brockmann (.woff2, .woff, .ttf u .otf). Se aplican en toda la aplicación al añadirlos.",
       "customFontDropzone": "Arrastra los archivos de fuente aquí o haz clic para elegir",
-      "customFontEmpty": "Aún no se han añadido fuentes personalizadas"
+      "customFontEmpty": "Aún no se han añadido fuentes personalizadas",
+      "brandLogoTitle": "Logotipo de la app",
+      "brandLogoDescription": "Sustituye el logotipo de la esquina superior izquierda de la app y de la pantalla de inicio de sesión. PNG, JPG, WebP o GIF animado. No cambia el icono del navegador ni de la app.",
+      "brandLogoDropzone": "Arrastra una imagen de logotipo aquí o haz clic para elegir"
     },
     "messageList": {
       "title": "Lista de mensajes",
