@@ -20,7 +20,7 @@ function fmtAddrList(raw) {
   } catch { return []; }
 }
 
-export default function ConversationView({ rootMessage, isMobile = false, defaultReplyAll = false }) {
+export default function ConversationView({ rootMessage, isMobile = false, defaultReplyAll = false, topSlot = null }) {
   const { t } = useTranslation();
   const {
     threadMessages, setThreadMessages, loadingThread, setLoadingThread,
@@ -113,6 +113,9 @@ export default function ConversationView({ rootMessage, isMobile = false, defaul
   return (
     <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg-primary)' }}>
       <div style={{ padding: isMobile ? '12px 0 24px' : '24px 28px' }}>
+        {/* AI action results (summarize etc.), when present */}
+        {topSlot && <div style={{ padding: isMobile ? '0 16px' : 0 }}>{topSlot}</div>}
+
         {/* Thread subject */}
         <div style={{
           fontSize: 19, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3,
