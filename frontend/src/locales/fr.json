@@ -247,6 +247,10 @@
       "button": "Classer avec l'IA",
       "done": "Classé comme {{category}}",
       "error": "La classification par IA a échoué."
+    },
+    "downloadFail": {
+      "title": "Échec du téléchargement",
+      "body": "Impossible de télécharger les pièces jointes. Veuillez réessayer."
     }
   },
   "messageList": {

@@ -247,6 +247,10 @@
       "button": "Classifica con IA",
       "done": "Classificato come {{category}}",
       "error": "Classificazione IA fallita."
+    },
+    "downloadFail": {
+      "title": "Download non riuscito",
+      "body": "Impossibile scaricare gli allegati. Riprova."
     }
   },
   "messageList": {

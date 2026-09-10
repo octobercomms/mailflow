@@ -247,6 +247,10 @@
       "button": "Clasificar con IA",
       "done": "Clasificado como {{category}}",
       "error": "La clasificación con IA falló."
+    },
+    "downloadFail": {
+      "title": "Error de descarga",
+      "body": "No se pudieron descargar los archivos adjuntos. Inténtalo de nuevo."
     }
   },
   "messageList": {

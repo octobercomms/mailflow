@@ -247,6 +247,10 @@
       "button": "AI 分类",
       "done": "已分类为 {{category}}",
       "error": "AI 分类失败。"
+    },
+    "downloadFail": {
+      "title": "下载失败",
+      "body": "无法下载附件，请重试。"
     }
   },
   "messageList": {

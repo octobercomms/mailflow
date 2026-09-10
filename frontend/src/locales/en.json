@@ -247,6 +247,10 @@
       "button": "Classify with AI",
       "done": "Classified as {{category}}",
       "error": "AI classification failed."
+    },
+    "downloadFail": {
+      "title": "Download failed",
+      "body": "Could not download the attachments. Please try again."
     }
   },
   "messageList": {
