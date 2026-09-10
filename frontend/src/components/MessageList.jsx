@@ -221,6 +221,9 @@ export default function MessageList() {
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const folderPickerRef = useRef(null);
+  // Bulk cross-account move: pick a destination account for every selected conversation.
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const accountPickerRef = useRef(null);
   // Tracks the index of the last toggled row for shift-click range selection
   const lastSelectIdxRef = useRef(-1);
 
@@ -305,6 +308,7 @@ export default function MessageList() {
     setSelectedIds(new Set());
     setSelectionModeActive(false);
     setShowFolderPicker(false);
+    setShowAccountPicker(false);
     lastSelectIdxRef.current = -1;
   }, [messagesRefreshToken]);
 
@@ -313,6 +317,7 @@ export default function MessageList() {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         setShowFolderPicker(false);
+        setShowAccountPicker(false);
         setShowLayoutPicker(false);
         setSelectedIds(new Set());
         setSelectionModeActive(false);
@@ -321,6 +326,9 @@ export default function MessageList() {
     const onPointer = (e) => {
       if (folderPickerRef.current && !folderPickerRef.current.contains(e.target)) {
         setShowFolderPicker(false);
+      }
+      if (accountPickerRef.current && !accountPickerRef.current.contains(e.target)) {
+        setShowAccountPicker(false);
       }
       if (layoutPickerRef.current && !layoutPickerRef.current.contains(e.target)) {
         setShowLayoutPicker(false);
@@ -1565,6 +1573,58 @@ export default function MessageList() {
       },
     });
   }, [removeMessage, decrementUnread, incrementUnread, addNotification, t]);
+
+  // Bulk cross-account move: relocate every selected conversation into another account's
+  // INBOX. Each conversation is resolved into its individual messages (whole threads move
+  // together, matching the single-conversation action), keeping only copies that don't
+  // already live in the destination. There is no undo timer — a cross-account move is a
+  // physical relocation across servers, so failures roll back per message instead.
+  const handleBulkMoveToAccount = useCallback(async (msgs, toAccountId) => {
+    setShowAccountPicker(false);
+    const destAccount = accounts.find(a => a.id === toAccountId);
+    const destName = destAccount?.email || destAccount?.name || t('contextMenu.moveToAccount', { defaultValue: 'account' });
+    const resolved = await Promise.all((msgs || []).map(async (m) => {
+      try {
+        const thread = await resolveMessagesForThreadAction(m);
+        return (thread || []).filter(x => x && x.id && x.account_id && x.account_id !== toAccountId);
+      } catch {
+        return (m && m.account_id !== toAccountId) ? [m] : [];
+      }
+    }));
+    const moveList = [];
+    const seen = new Set();
+    for (const list of resolved) {
+      for (const x of list) { if (!seen.has(x.id)) { seen.add(x.id); moveList.push(x); } }
+    }
+    setSelectedIds(new Set());
+    setSelectionModeActive(false);
+    if (moveList.length === 0) return;
+    const ids = moveList.map(m => m.id);
+    moveList.forEach(m => { removeMessage(m.id); if (!m.is_read) decrementUnread(m.account_id); });
+    const results = await Promise.allSettled(ids.map(id => api.moveToAccount(id, toAccountId, 'INBOX')));
+    const failed = [];
+    results.forEach((r, i) => { if (r.status === 'rejected') failed.push(moveList[i]); });
+    if (failed.length) {
+      console.error('Bulk cross-account move failed for', failed.length, 'message(s)');
+      useStore.getState().restoreMessages(failed);
+      failed.forEach(m => { if (m && !m.is_read) incrementUnread(m.account_id); });
+    }
+    const movedCount = ids.length - failed.length;
+    if (movedCount > 0) {
+      addNotification({
+        title: t('message.movedToAccount.title', { defaultValue: 'Moved to {{account}}', account: destName }),
+        body: t('messageList.bulkMoved.title', { count: movedCount }),
+      });
+      // Both source and destination unread badges changed — refresh authoritative counts.
+      api.getUnreadCounts().then(c => useStore.getState().setUnreadCounts(c)).catch(() => {});
+    }
+    if (failed.length) {
+      addNotification({
+        title: t('message.movedToAccount.failTitle', { defaultValue: 'Move failed' }),
+        body: t('message.movedToAccount.failBody', { defaultValue: "Couldn't move the message to that account." }),
+      });
+    }
+  }, [accounts, resolveMessagesForThreadAction, removeMessage, decrementUnread, incrementUnread, addNotification, t]);
 
   const handleRowMove = useCallback((e, msg) => {
     e.stopPropagation();
@@ -3508,6 +3568,114 @@ export default function MessageList() {
                 </>
               )}
             </div>
+
+            {/* Move to account button + picker — only when another account exists to move into */}
+            {accounts.length > 1 && (
+              <div style={{ position: 'relative' }} ref={accountPickerRef}>
+                <BulkBtn
+                  title={canMove ? t('contextMenu.moveToAccount', { defaultValue: 'Move to account' }) : t('messageList.moveToFolderDisabled')}
+                  onClick={() => { if (canMove) setShowAccountPicker(v => !v); }}
+                  disabled={!canMove}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 12H10"/><polyline points="16 6 22 12 16 18"/><path d="M4 4v16"/>
+                  </svg>
+                </BulkBtn>
+
+                {showAccountPicker && !isMobile && (<>
+                  <div onClick={() => setShowAccountPicker(false)} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    boxShadow: 'var(--shadow-popover)',
+                    minWidth: 200, maxWidth: 320,
+                    overflow: 'hidden',
+                    zIndex: 100,
+                  }}>
+                    <div style={{ padding: '8px 12px 4px', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {t('contextMenu.moveToAccount', { defaultValue: 'Move to account' })}
+                    </div>
+                    <div style={{ maxHeight: 285, overflowY: 'auto' }}>
+                      {accounts.filter(a => a.id !== selectedAccountIds[0]).map(acc => (
+                        <button
+                          key={acc.id}
+                          onClick={() => handleBulkMoveToAccount(selectedMsgs, acc.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 9,
+                            width: '100%', padding: '8px 12px',
+                            background: 'none', border: 'none',
+                            color: 'var(--text-primary)', fontSize: 13,
+                            cursor: 'pointer', textAlign: 'left',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >
+                          <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: acc.color || 'var(--accent)' }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {acc.email || acc.name || acc.id}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>)}
+
+                {/* Mobile account picker — bottom sheet */}
+                {showAccountPicker && isMobile && (
+                  <>
+                    <div
+                      onClick={() => setShowAccountPicker(false)}
+                      style={{
+                        position: 'fixed', inset: 0, zIndex: 3000,
+                        background: 'var(--overlay-scrim)',
+                        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+                      }}
+                    />
+                    <div style={{
+                      position: 'fixed', left: 0, right: 0, bottom: 0,
+                      zIndex: 3001,
+                      background: 'var(--bg-secondary)',
+                      borderRadius: '16px 16px 0 0',
+                      boxShadow: '0 -4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04)',
+                      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+                      animation: 'sheet-enter 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+                        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+                      </div>
+                      <div style={{ padding: '4px 20px 12px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {t('contextMenu.moveToAccount', { defaultValue: 'Move to account' })}
+                      </div>
+                      <div style={{ borderTop: '1px solid var(--border-subtle)', overflowY: 'auto', maxHeight: '60vh' }}>
+                        {accounts.filter(a => a.id !== selectedAccountIds[0]).map(acc => (
+                          <button
+                            key={acc.id}
+                            onClick={() => handleBulkMoveToAccount(selectedMsgs, acc.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 14,
+                              width: '100%', minHeight: 48,
+                              padding: '0 20px',
+                              background: 'none', border: 'none',
+                              borderBottom: '1px solid var(--border-subtle)',
+                              color: 'var(--text-primary)', fontSize: 15,
+                              cursor: 'pointer', textAlign: 'left',
+                            }}
+                          >
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: acc.color || 'var(--accent)' }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {acc.email || acc.name || acc.id}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Clear selection */}
             <button

@@ -86,6 +86,7 @@ export default function EmailBody({ messageId, message, isMobile = false, onBody
   const [retryKey, setRetryKey] = useState(0);
   const [loadingBody, setLoadingBody] = useState(false);
   const [downloadingPart, setDownloadingPart] = useState(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [savingAllow, setSavingAllow] = useState(false);
 
   const iframeRef = useRef(null);
@@ -449,6 +450,39 @@ export default function EmailBody({ messageId, message, isMobile = false, onBody
     }
   };
 
+  // Download every attachment as a ZIP. Uses the same authenticated fetch→blob path as
+  // single downloads (rather than a plain <a href download>), so it carries the session
+  // cookie and isn't intercepted by the service worker / mobile WebView, and surfaces a
+  // notification on failure instead of silently doing nothing.
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true);
+    try {
+      const res = await fetch(`/api/mail/messages/${messageId}/attachments.zip`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      // Prefer the server-provided filename; fall back to a sensible default.
+      let filename = 'attachments.zip';
+      const cd = res.headers.get('Content-Disposition') || '';
+      const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
+      const plain = cd.match(/filename="?([^";]+)"?/i);
+      if (star) { try { filename = decodeURIComponent(star[1]); } catch { /* keep fallback */ } }
+      else if (plain) { filename = plain[1]; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download all error:', err);
+      addNotification({ title: t('message.downloadFail.title'), body: t('message.downloadFail.body') });
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
   const handleLoadImages = () => {
     imagesRequested.add(messageId);
     delete bodyCache[messageId];
@@ -506,13 +540,14 @@ export default function EmailBody({ messageId, message, isMobile = false, onBody
               {t('message.attachment', { count: attachments.length })}
             </div>
             {attachments.length > 1 && (
-              <a href={`/api/mail/messages/${messageId}/attachments.zip`} download
-                style={{ fontSize: 12, color: 'var(--accent-fg)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button onClick={handleDownloadAll} disabled={downloadingAll}
+                style={{ fontSize: 12, color: 'var(--accent-fg)', background: 'none', border: 'none', padding: 0,
+                  cursor: downloadingAll ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                {t('message.downloadAll')}
-              </a>
+                {downloadingAll ? t('message.downloading') : t('message.downloadAll')}
+              </button>
             )}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

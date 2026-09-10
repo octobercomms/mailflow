@@ -247,6 +247,10 @@
       "button": "Mit KI klassifizieren",
       "done": "Klassifiziert als {{category}}",
       "error": "KI-Klassifizierung fehlgeschlagen."
+    },
+    "downloadFail": {
+      "title": "Download fehlgeschlagen",
+      "body": "Die Anhänge konnten nicht heruntergeladen werden. Bitte erneut versuchen."
     }
   },
   "messageList": {
