@@ -15,7 +15,7 @@
 // or:
 //   docker exec mailflow-backend node src/scripts/rethread.js
 import { pool, query } from '../services/db.js';
-import { computeThreadId } from '../services/imapManager.js';
+import { computeThreadId } from '../services/threading.js';
 
 async function main() {
   const accounts = await query(
