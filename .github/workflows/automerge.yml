@@ -1,0 +1,84 @@
+name: Auto-merge Claude PRs
+
+# When CI finishes successfully on a PR from a claude/* branch, merge it
+# automatically. Runs in the base-repo context (workflow_run), so it uses the
+# repo's GITHUB_TOKEN with the permissions granted below. CI (lint, build,
+# tests, npm audit) is the only gate; nothing else is required to merge.
+#
+# workflow_run workflows are always taken from the default branch (october),
+# so this file must live on october to fire.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    # Only when CI passed, on a pull_request run, from a claude/* head branch.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'claude/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge the PR for this branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headBranch = context.payload.workflow_run.head_branch;
+            const headSha = context.payload.workflow_run.head_sha;
+
+            // Find the open PR whose head is this branch (same-repo PRs only).
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${headBranch}`,
+            });
+            if (prs.length === 0) {
+              core.info(`No open PR for ${headBranch}; nothing to merge.`);
+              return;
+            }
+            const pr = prs[0];
+
+            // Guard against a stale CI run: only merge if CI passed on the PR's
+            // current head commit, not an older push.
+            if (pr.head.sha !== headSha) {
+              core.info(`CI ran on ${headSha} but PR head is ${pr.head.sha}; skipping.`);
+              return;
+            }
+            if (pr.draft) {
+              core.info(`PR #${pr.number} is a draft; skipping.`);
+              return;
+            }
+
+            // Confirm the PR is mergeable (no conflicts) before attempting.
+            for (let i = 0; i < 5; i++) {
+              const { data: fresh } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+              });
+              if (fresh.mergeable === null) {
+                await new Promise(r => setTimeout(r, 2000));
+                continue;
+              }
+              if (fresh.mergeable === false) {
+                core.info(`PR #${pr.number} is not mergeable (conflicts); skipping.`);
+                return;
+              }
+              break;
+            }
+
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              merge_method: 'merge',
+            });
+            core.info(`Merged PR #${pr.number} (${headBranch}).`);
