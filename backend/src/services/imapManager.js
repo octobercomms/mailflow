@@ -5146,6 +5146,107 @@ export class ImapManager {
     }
   }
 
+  // Scan the server for messages stored more than once in the same folder — the same
+  // RFC Message-ID under multiple UIDs, which cross-account moves can leave behind by
+  // appending a second real copy. Read-only: returns the duplicate groups, never deletes.
+  // Shape: { total, groups: [{ folder, messageId, uids:[...], keepUid, removeUids:[...] }] }.
+  async findServerDuplicates(account) {
+    const foldersRes = await query('SELECT path FROM folders WHERE account_id = $1', [account.id]);
+    const groups = [];
+    await withFreshClient(account, async (client) => {
+      for (const { path: folder } of foldersRes.rows) {
+        let byMessageId;
+        try {
+          const lock = await client.getMailboxLock(folder);
+          try {
+            if (!client.mailbox || !client.mailbox.exists) continue;
+            byMessageId = new Map(); // messageId -> uid[]
+            for await (const msg of client.fetch('1:*', { uid: true, envelope: true }, { uid: true })) {
+              const mid = msg.envelope?.messageId;
+              if (!mid) continue; // never group messages with no Message-ID
+              const arr = byMessageId.get(mid) || [];
+              arr.push(Number(msg.uid));
+              byMessageId.set(mid, arr);
+            }
+          } finally {
+            lock.release();
+          }
+        } catch (err) {
+          console.warn(`findServerDuplicates: ${logAccount(account)}/${folder} failed: ${extractImapError(err)}`);
+          continue;
+        }
+        for (const [messageId, uids] of byMessageId) {
+          if (uids.length < 2) continue;
+          const sorted = [...uids].sort((a, b) => a - b);
+          groups.push({
+            folder,
+            messageId,
+            uids: sorted,
+            keepUid: sorted[0],            // keep the oldest copy
+            removeUids: sorted.slice(1),   // drop the rest
+          });
+        }
+      }
+    });
+    const total = groups.reduce((n, g) => n + g.removeUids.length, 0);
+    return { total, groups };
+  }
+
+  // Remove the duplicate server copies found by findServerDuplicates — keeping the oldest
+  // UID of each Message-ID and deleting the rest from the server, then dropping the matching
+  // local rows. DESTRUCTIVE (deletes from the real mailbox), so it is only ever reached
+  // through an explicit, confirmed admin action. Returns the number of copies removed.
+  async removeServerDuplicates(account) {
+    const { groups } = await this.findServerDuplicates(account);
+    if (!groups.length) return { removed: 0 };
+    // Group the removals by folder so each folder is opened once.
+    const removeByFolder = new Map(); // folder -> uid[]
+    for (const g of groups) {
+      const arr = removeByFolder.get(g.folder) || [];
+      arr.push(...g.removeUids);
+      removeByFolder.set(g.folder, arr);
+    }
+    let removed = 0;
+    await withFreshClient(account, async (client) => {
+      for (const [folder, uids] of removeByFolder) {
+        if (!uids.length) continue;
+        try {
+          const lock = await client.getMailboxLock(folder);
+          try {
+            const ok = await client.messageDelete(uids.map(String), { uid: true });
+            if (ok === false) {
+              console.warn(`removeServerDuplicates: messageDelete not confirmed for ${logAccount(account)}/${folder}`);
+              continue;
+            }
+          } finally {
+            lock.release();
+          }
+        } catch (err) {
+          console.warn(`removeServerDuplicates: ${logAccount(account)}/${folder} failed: ${extractImapError(err)}`);
+          continue;
+        }
+        // Drop the matching local rows for the copies we just removed from the server.
+        await query(
+          'DELETE FROM messages WHERE account_id = $1 AND folder = $2 AND uid = ANY($3::bigint[])',
+          [account.id, folder, uids]
+        );
+        await query(
+          `UPDATE folders f
+           SET total_count  = (SELECT COUNT(*) FROM messages m WHERE m.account_id = $1 AND m.folder = $2),
+               unread_count = (SELECT COUNT(*) FILTER (WHERE m.is_read = false) FROM messages m WHERE m.account_id = $1 AND m.folder = $2)
+           WHERE f.account_id = $1 AND f.path = $2`,
+          [account.id, folder]
+        );
+        removed += uids.length;
+      }
+    });
+    if (removed > 0) {
+      this.broadcast({ type: 'sync_complete', accountId: account.id }, account.user_id);
+    }
+    console.log(`removeServerDuplicates: ${logAccount(account)} removed ${removed} duplicate copy(ies)`);
+    return { removed };
+  }
+
   async connectAllForUser(userId) {
     // Load the user's preferred sync interval before starting any account intervals.
     // Without this, a user who set e.g. 30 s would silently revert to 60 s after

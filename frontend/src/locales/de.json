@@ -670,7 +670,14 @@
       "categorizationSection": "E-Mail-Kategorisierung",
       "categorizationEnabled": "Posteingang-Kategorisierung aktivieren",
       "categorizationEnabledDesc": "Eingehende E-Mails in Kategorie-Tabs einteilen. Standardmäßig deaktiviert.",
-      "enabledGlobally": "Global aktiviert"
+      "enabledGlobally": "Global aktiviert",
+      "dedupe": "Doppelte Kopien entfernen",
+      "dedupeNoneTitle": "Keine Duplikate",
+      "dedupeNoneBody": "Auf dem Server wurden keine doppelten Kopien gefunden.",
+      "dedupeConfirm": "{{count}} doppelte Kopie(n) vom Mailserver entfernen und jeweils eine behalten? Dies löscht sie aus dem Postfach und kann nicht rückgängig gemacht werden.",
+      "dedupeDoneTitle": "Duplikate entfernt",
+      "dedupeDoneBody": "{{count}} doppelte Kopie(n) vom Server entfernt.",
+      "dedupeError": "Duplikate konnten nicht entfernt werden"
     },
     "folderMappings": {
       "title": "Ordnerzuordnungen",

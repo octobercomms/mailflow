@@ -737,7 +737,14 @@
       "categorizationSection": "Categorizzazione email",
       "categorizationEnabled": "Abilita categorizzazione",
       "categorizationEnabledDesc": "Ordina le email in arrivo in schede di categoria. Disabilitato per impostazione predefinita.",
-      "enabledGlobally": "Abilitato globalmente"
+      "enabledGlobally": "Abilitato globalmente",
+      "dedupe": "Rimuovi copie duplicate",
+      "dedupeNoneTitle": "Nessun duplicato",
+      "dedupeNoneBody": "Nessuna copia duplicata trovata sul server.",
+      "dedupeConfirm": "Rimuovere {{count}} copia/e duplicata/e dal server di posta, mantenendone una per ciascuna? Questo le elimina dalla casella e non può essere annullato.",
+      "dedupeDoneTitle": "Duplicati rimossi",
+      "dedupeDoneBody": "Rimosse {{count}} copia/e duplicata/e dal server.",
+      "dedupeError": "Impossibile rimuovere i duplicati"
     },
     "folderMappings": {
       "title": "Mappatura cartelle",

@@ -737,7 +737,14 @@
       "categorizationSection": "邮件分类",
       "categorizationEnabled": "启用收件箱分类",
       "categorizationEnabledDesc": "将收到的邮件按类别选项卡分类。默认禁用。",
-      "enabledGlobally": "已全局启用"
+      "enabledGlobally": "已全局启用",
+      "dedupe": "删除重复副本",
+      "dedupeNoneTitle": "无重复",
+      "dedupeNoneBody": "服务器上未找到重复副本。",
+      "dedupeConfirm": "从邮件服务器删除 {{count}} 个重复副本并各保留一个？这将从邮箱中删除且无法撤销。",
+      "dedupeDoneTitle": "已删除重复项",
+      "dedupeDoneBody": "已从服务器删除 {{count}} 个重复副本。",
+      "dedupeError": "无法删除重复项"
     },
     "folderMappings": {
       "title": "文件夹映射",
