@@ -417,9 +417,14 @@ router.post('/:id/reindex', async (req, res) => {
     const account = result.rows[0];
     const alreadyRunning = imapManager.backfillAllRunning.has(account.id);
     if (!alreadyRunning) {
-      imapManager.backfillAllFolders(account).catch(err =>
-        console.error(`Manual reindex error for ${account.email_address}:`, err.message)
-      );
+      // Backfill re-pulls messages (its upserts preserve local read-state), then
+      // resyncAllFlags reconciles read/star from the server across every folder —
+      // so a reindex also repairs read-state drift (e.g. from cross-account moves).
+      imapManager.backfillAllFolders(account)
+        .then(() => imapManager.resyncAllFlags(account))
+        .catch(err =>
+          console.error(`Manual reindex error for ${account.email_address}:`, err.message)
+        );
     }
     res.json({ ok: true, alreadyRunning });
   } catch (err) {
