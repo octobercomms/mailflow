@@ -420,6 +420,26 @@ function AccountsTab() {
     }
   };
 
+  const [dedupeBusy, setDedupeBusy] = useState(null);
+  const handleDedupe = async (id) => {
+    if (dedupeBusy) return;
+    setDedupeBusy(id);
+    try {
+      const { total } = await api.findDuplicates(id);
+      if (!total) {
+        addNotification({ title: t('admin.accounts.dedupeNoneTitle'), body: t('admin.accounts.dedupeNoneBody') });
+        return;
+      }
+      if (!window.confirm(t('admin.accounts.dedupeConfirm', { count: total }))) return;
+      const { removed } = await api.removeDuplicates(id);
+      addNotification({ title: t('admin.accounts.dedupeDoneTitle'), body: t('admin.accounts.dedupeDoneBody', { count: removed }) });
+    } catch (err) {
+      addNotification({ type: 'error', title: t('admin.accounts.dedupeError'), body: err.message });
+    } finally {
+      setDedupeBusy(null);
+    }
+  };
+
   const handleSyncFolders = async (id) => {
     try {
       await api.syncFoldersNow(id);
@@ -930,6 +950,11 @@ function AccountsTab() {
               <IconBtn onClick={() => handleReindex(account.id)} title={t('admin.accounts.reindex')} disabled={!!backfillProgress[account.id]}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </IconBtn>
+              <IconBtn onClick={() => handleDedupe(account.id)} title={t('admin.accounts.dedupe')} disabled={dedupeBusy === account.id}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                 </svg>
               </IconBtn>
               <IconBtn onClick={() => handleDelete(account.id)} title={t('common.remove')} danger>

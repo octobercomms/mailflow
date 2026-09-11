@@ -737,7 +737,14 @@
       "categorizationSection": "Catégorisation des e-mails",
       "categorizationEnabled": "Activer la catégorisation",
       "categorizationEnabledDesc": "Classe les e-mails entrants dans des onglets de catégories. Désactivé par défaut.",
-      "enabledGlobally": "Activé globalement"
+      "enabledGlobally": "Activé globalement",
+      "dedupe": "Supprimer les copies en double",
+      "dedupeNoneTitle": "Aucun doublon",
+      "dedupeNoneBody": "Aucune copie en double n’a été trouvée sur le serveur.",
+      "dedupeConfirm": "Supprimer {{count}} copie(s) en double du serveur de messagerie en conservant une de chaque ? Cela les supprime de la boîte aux lettres et est irréversible.",
+      "dedupeDoneTitle": "Doublons supprimés",
+      "dedupeDoneBody": "{{count}} copie(s) en double supprimée(s) du serveur.",
+      "dedupeError": "Impossible de supprimer les doublons"
     },
     "folderMappings": {
       "title": "Mappage des dossiers",

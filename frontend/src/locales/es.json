@@ -737,7 +737,14 @@
       "categorizationSection": "Categorización de correo",
       "categorizationEnabled": "Activar categorización del buzón",
       "categorizationEnabledDesc": "Clasifica los correos entrantes en pestañas de categorías. Desactivado por defecto.",
-      "enabledGlobally": "Activado globalmente"
+      "enabledGlobally": "Activado globalmente",
+      "dedupe": "Eliminar copias duplicadas",
+      "dedupeNoneTitle": "Sin duplicados",
+      "dedupeNoneBody": "No se encontraron copias duplicadas en el servidor.",
+      "dedupeConfirm": "¿Eliminar {{count}} copia(s) duplicada(s) del servidor de correo y conservar una de cada una? Esto las borra del buzón y no se puede deshacer.",
+      "dedupeDoneTitle": "Duplicados eliminados",
+      "dedupeDoneBody": "Se eliminaron {{count}} copia(s) duplicada(s) del servidor.",
+      "dedupeError": "No se pudieron eliminar los duplicados"
     },
     "folderMappings": {
       "title": "Asignación de carpetas",

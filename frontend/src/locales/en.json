@@ -737,7 +737,14 @@
       "categorizationSection": "Email Categorization",
       "categorizationEnabled": "Enable inbox categorization",
       "categorizationEnabledDesc": "Sort incoming emails into category tabs. Disabled by default.",
-      "enabledGlobally": "Enabled globally"
+      "enabledGlobally": "Enabled globally",
+      "dedupe": "Remove duplicate copies",
+      "dedupeNoneTitle": "No duplicates",
+      "dedupeNoneBody": "No duplicate copies were found on the server.",
+      "dedupeConfirm": "Remove {{count}} duplicate copy(ies) from the mail server, keeping one of each? This deletes them from the mailbox and cannot be undone.",
+      "dedupeDoneTitle": "Duplicates removed",
+      "dedupeDoneBody": "Removed {{count}} duplicate copy(ies) from the server.",
+      "dedupeError": "Could not remove duplicates"
     },
     "folderMappings": {
       "title": "Folder mappings",

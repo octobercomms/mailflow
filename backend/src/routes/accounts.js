@@ -436,4 +436,38 @@ router.post('/:id/reindex', async (req, res) => {
   }
 });
 
+// Report duplicate server copies (same Message-ID stored more than once in a folder).
+// Read-only — used to show the user what a de-dup would remove before they confirm it.
+router.get('/:id/duplicates', async (req, res) => {
+  try {
+    const result = await query(
+      "SELECT * FROM email_accounts WHERE id = $1 AND user_id = $2 AND enabled = true AND protocol = 'imap'",
+      [req.params.id, req.session.userId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Account not found' });
+    const { total, groups } = await imapManager.findServerDuplicates(result.rows[0]);
+    res.json({ total, groups });
+  } catch (err) {
+    console.error('GET /accounts/:id/duplicates error:', err.message);
+    res.status(500).json({ error: 'Failed to scan for duplicates' });
+  }
+});
+
+// Remove duplicate server copies, keeping the oldest of each. DESTRUCTIVE: deletes from
+// the real mailbox, so it runs only on this explicit request (the UI confirms first).
+router.post('/:id/duplicates/remove', async (req, res) => {
+  try {
+    const result = await query(
+      "SELECT * FROM email_accounts WHERE id = $1 AND user_id = $2 AND enabled = true AND protocol = 'imap'",
+      [req.params.id, req.session.userId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Account not found' });
+    const { removed } = await imapManager.removeServerDuplicates(result.rows[0]);
+    res.json({ ok: true, removed });
+  } catch (err) {
+    console.error('POST /accounts/:id/duplicates/remove error:', err.message);
+    res.status(500).json({ error: 'Failed to remove duplicates' });
+  }
+});
+
 export default router;
