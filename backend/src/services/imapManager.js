@@ -2135,6 +2135,46 @@ export class ImapManager {
     return result.rowCount;
   }
 
+  // Full read/star reconcile from the server across every folder. The routine delta
+  // scan only covers a recent UID window, so a message whose flags changed outside
+  // that window — most notably one moved in from another account, whose UID sits
+  // wherever the destination server assigned it — can keep a stale is_read forever.
+  // This fetches uid+flags for the whole mailbox (cheap: no bodies) and reapplies via
+  // _applyFlagUpdates, which treats the server as authoritative (with the usual 30s
+  // guard for just-changed local rows). Run on reindex, so one reindex fixes drift.
+  async resyncAllFlags(account) {
+    const foldersRes = await query('SELECT path FROM folders WHERE account_id = $1', [account.id]);
+    let totalChanged = 0;
+    for (const { path: folder } of foldersRes.rows) {
+      try {
+        await withFreshClient(account, async (client) => {
+          const lock = await client.getMailboxLock(folder);
+          try {
+            if (!client.mailbox || !client.mailbox.exists) return;
+            const flagsToUpdate = [];
+            for await (const msg of client.fetch('1:*', { uid: true, flags: true }, { uid: true })) {
+              flagsToUpdate.push({
+                uid: msg.uid,
+                isRead: msg.flags.has('\\Seen'),
+                isStarred: msg.flags.has('\\Flagged'),
+              });
+            }
+            totalChanged += await this._applyFlagUpdates(account, folder, flagsToUpdate);
+          } finally {
+            lock.release();
+          }
+        });
+      } catch (err) {
+        console.warn(`resyncAllFlags: ${logAccount(account)}/${folder} failed: ${extractImapError(err)}`);
+      }
+    }
+    if (totalChanged > 0) {
+      this.broadcast({ type: 'flags_synced', accountId: account.id }, account.user_id);
+    }
+    console.log(`resyncAllFlags: ${logAccount(account)} reconciled ${totalChanged} message(s) across ${foldersRes.rows.length} folder(s)`);
+    return totalChanged;
+  }
+
   // Lightweight flag-only sync: fetch uid+flags for the last 200 messages in INBOX
   // and bulk-update is_read / is_starred in the DB.
   //
@@ -4417,17 +4457,19 @@ export class ImapManager {
   async moveMessageAcrossAccounts(sourceAccount, uid, sourceFolder, destAccount, destFolder) {
     // 1. Pull the raw source + flags from the source mailbox.
     let raw = null;
-    let flags = ['\\Seen'];
+    // null until the fetch reports the message's flags. An UNREAD message has an
+    // empty flag set — we must carry that through as [] so the destination copy
+    // stays unread, rather than defaulting to \Seen and silently marking it read.
+    let flags = null;
     await withFreshClient(sourceAccount, async (client) => {
       const lock = await client.getMailboxLock(sourceFolder);
       try {
         for await (const msg of client.fetch(String(uid), { uid: true, source: true, flags: true }, { uid: true })) {
           if (msg.source) raw = Buffer.isBuffer(msg.source) ? msg.source : Buffer.from(String(msg.source));
-          // Preserve the user-visible flags the destination can honour; \Recent is
-          // server-managed and must not be re-applied on APPEND.
-          if (msg.flags && msg.flags.size) {
-            const kept = [...msg.flags].filter(f => f.toLowerCase() !== '\\recent');
-            if (kept.length) flags = kept;
+          // Preserve the message's real flags, including an empty set (= unread).
+          // \Recent is server-managed and must not be re-applied on APPEND.
+          if (msg.flags) {
+            flags = [...msg.flags].filter(f => f.toLowerCase() !== '\\recent');
           }
         }
       } finally {
@@ -4437,7 +4479,8 @@ export class ImapManager {
     if (!raw) throw new Error(`cross-account move: source message uid=${uid} not found in ${sourceFolder}`);
 
     // 2. APPEND into the destination account's target folder (fresh connection).
-    const { uid: newUid } = await this.appendToFolder(destAccount, destFolder, raw, flags);
+    // If the fetch reported no flags object at all, keep the copy unread ([]).
+    const { uid: newUid } = await this.appendToFolder(destAccount, destFolder, raw, flags ?? []);
 
     // 3. Original only leaves the source once the destination copy is confirmed.
     await this.permanentDeleteMessage(sourceAccount, uid, sourceFolder);
