@@ -4461,16 +4461,18 @@ export class ImapManager {
     // empty flag set — we must carry that through as [] so the destination copy
     // stays unread, rather than defaulting to \Seen and silently marking it read.
     let flags = null;
+    let messageId = null;
     await withFreshClient(sourceAccount, async (client) => {
       const lock = await client.getMailboxLock(sourceFolder);
       try {
-        for await (const msg of client.fetch(String(uid), { uid: true, source: true, flags: true }, { uid: true })) {
+        for await (const msg of client.fetch(String(uid), { uid: true, source: true, flags: true, envelope: true }, { uid: true })) {
           if (msg.source) raw = Buffer.isBuffer(msg.source) ? msg.source : Buffer.from(String(msg.source));
           // Preserve the message's real flags, including an empty set (= unread).
           // \Recent is server-managed and must not be re-applied on APPEND.
           if (msg.flags) {
             flags = [...msg.flags].filter(f => f.toLowerCase() !== '\\recent');
           }
+          if (msg.envelope?.messageId) messageId = msg.envelope.messageId;
         }
       } finally {
         lock.release();
@@ -4478,11 +4480,37 @@ export class ImapManager {
     });
     if (!raw) throw new Error(`cross-account move: source message uid=${uid} not found in ${sourceFolder}`);
 
-    // 2. APPEND into the destination account's target folder (fresh connection).
-    // If the fetch reported no flags object at all, keep the copy unread ([]).
-    const { uid: newUid } = await this.appendToFolder(destAccount, destFolder, raw, flags ?? []);
+    // 2. Put the message in the destination folder, but idempotently: if that folder
+    // already holds this Message-ID (a move ran twice, or the mail was already there),
+    // do NOT append a second copy — reuse the existing one. This is what stops
+    // cross-account moves leaving duplicate copies behind. Only append when it's absent
+    // or when the message has no Message-ID to match on.
+    let newUid = null;
+    await withFreshClient(destAccount, async (client) => {
+      const lock = await client.getMailboxLock(destFolder);
+      try {
+        let existing = [];
+        if (messageId) {
+          try {
+            existing = await client.search({ header: { 'message-id': messageId } }, { uid: true }) || [];
+          } catch {
+            existing = []; // server without HEADER search — fall through to append
+          }
+        }
+        if (Array.isArray(existing) && existing.length > 0) {
+          newUid = Math.min(...existing.map(Number));
+          console.log(`Cross-account move: ${logAccount(destAccount)}/${destFolder} already has ${messageId} (uid=${newUid}); skipping append`);
+        } else {
+          const res = await client.append(destFolder, raw, flags ?? []);
+          if (res === false) throw new Error('IMAP append returned false — destination did not confirm the message was stored');
+          if (res && typeof res.uid === 'number') newUid = res.uid;
+        }
+      } finally {
+        lock.release();
+      }
+    });
 
-    // 3. Original only leaves the source once the destination copy is confirmed.
+    // 3. Original only leaves the source once the destination copy is confirmed present.
     await this.permanentDeleteMessage(sourceAccount, uid, sourceFolder);
 
     console.log(`Cross-account move: ${logAccount(sourceAccount)}/${sourceFolder} uid=${uid} -> ${logAccount(destAccount)}/${destFolder} uid=${newUid}`);
