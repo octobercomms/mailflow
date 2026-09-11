@@ -5,6 +5,7 @@ const archiver = require('archiver');
 import { query } from '../services/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { imapManager } from '../index.js';
+import { computeThreadId } from '../services/imapManager.js';
 import { sanitizeEmail, stripEmailHead, hasRemoteImages, blockRemoteImages, rewriteEbayImageserUrls, rewriteAnchorHrefs } from '../services/emailSanitizer.js';
 import { snippetFromBody, decodeMimeWords, parseRawHeaders, buildHeadersFromMessage } from '../services/messageParser.js';
 import { resolveTrashFolder, resolveAllTrashPaths, resolveAllDraftsPaths, resolveArchiveFolder, isAllMailFolder, resolveSpamFolder, resolveAllSpamPaths, getDeleteStrategy, adjustFolderCounts, fanOutReadToSiblings, fanOutStarToSiblings, fanOutBulkReadToSiblings } from '../utils/mailUtils.js';
@@ -1496,6 +1497,31 @@ router.post('/messages/:id/move-to-account', async (req, res) => {
         FROM deleted
         ON CONFLICT (account_id, uid, folder) DO NOTHING
       `, [id, destAccount.id, newUid, destFolder]);
+
+      // Re-thread for the destination account. The row carried over the SOURCE account's
+      // thread_id, but threading (thread_key) is per-account: that id was computed against
+      // the source account's messages and won't match the destination's copies of the same
+      // conversation, so the moved mail would fragment into its own row. Recompute it the
+      // same way sync does for a freshly-arrived message, then converge any destination
+      // messages that had used this message's id as a provisional thread root.
+      try {
+        const destThreadId = await computeThreadId(
+          destAccount.id, message.message_id, message.in_reply_to,
+          message.thread_references, message.subject, message.date
+        );
+        if (destThreadId) {
+          await query('UPDATE messages SET thread_id = $1 WHERE id = $2', [destThreadId, id]);
+          if (message.message_id) {
+            await query(
+              `UPDATE messages SET thread_id = $1
+               WHERE account_id = $2 AND thread_id = $3 AND message_id != $3`,
+              [destThreadId, destAccount.id, message.message_id]
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('post cross-account move re-thread failed:', err.message);
+      }
     } else {
       await query('DELETE FROM messages WHERE id = $1', [id]);
     }
