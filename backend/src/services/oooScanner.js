@@ -3,9 +3,15 @@
 // Finds auto-reply / out-of-office messages across every one of a user's accounts and
 // folders, asks the configured AI to extract any LASTING contact change (a person left
 // or gave a new address, or named an alternate contact), and stores reviewable
-// suggestions. Vacation-only replies produce nothing. Each scanned message is recorded
-// so a re-run (or the daily pass) only looks at new mail — the first run sweeps all
-// history, later runs are incremental, with no double-charging for the same email.
+// suggestions. Vacation-only replies produce nothing.
+//
+// Work is de-duplicated by sender: the same person's auto-reply fires on every campaign
+// send, so we only ever scan each sender's MOST RECENT out-of-office message. That copy
+// carries the current contact-change info, and reviewing one suggestion per person beats
+// dozens of identical ones. A sender is re-scanned only when a newer auto-reply arrives
+// from them (exactly when their situation may have changed). Each scanned message is
+// recorded so the first run sweeps all history and later runs are incremental, with no
+// double-charging.
 //
 // Detection is a cheap subject-pattern filter over the DB (no AI), so "scan every email"
 // only spends AI on the small out-of-office subset it finds. Provider plumbing is the
@@ -14,6 +20,13 @@
 import { query } from './db.js';
 import { loadAiConfig, aiComplete } from './taskGenerator.js';
 import { sendSystemEmail } from './mailer.js';
+
+// This is a classify-and-extract job (read one auto-reply, label it, pull a verbatim
+// address), so it runs on Haiku regardless of the global AI model — it's intelligent
+// enough for the task and keeps the full historical sweep and the daily pass cheap.
+// Change this string if the configured provider expects a different Haiku identifier
+// (a rejected model surfaces as a provider error on the scan status panel).
+const OOO_MODEL = 'claude-haiku-4-5';
 
 // High-precision subject patterns. Kept tight to avoid wasting AI calls on false hits;
 // widen if real out-of-office replies are being missed.
@@ -120,18 +133,29 @@ function isActionable(r) {
 // created. Safe to call repeatedly: the scan_state table makes each run incremental.
 export async function scanUserOoo(userId) {
   const cfg = await loadAiConfig(); // throws (503) when no provider is configured
+  // Hard-wire this feature to Haiku, leaving the global model untouched for everything else.
+  const oooCfg = { ...cfg, model: OOO_MODEL };
 
-  // Candidate out-of-office messages this user owns that have not been scanned yet.
+  // One candidate per sender: their most recent out-of-office message, but only when that
+  // latest copy has not been scanned yet. This collapses the same person's many campaign
+  // auto-replies to a single AI call, and re-scans a sender only once a newer reply lands.
   const { rows: candidates } = await query(
-    `SELECT m.id, m.account_id, m.subject, m.from_name, m.from_email, m.date,
-            COALESCE(NULLIF(m.body_text, ''), m.snippet) AS body
-       FROM messages m
-       JOIN email_accounts a ON a.id = m.account_id
-      WHERE a.user_id = $1
-        AND m.is_deleted = false
-        AND m.subject ~* $2
-        AND NOT EXISTS (SELECT 1 FROM ooo_scan_state s WHERE s.message_id = m.id)
-      ORDER BY m.date DESC
+    `WITH latest AS (
+       SELECT DISTINCT ON (lower(m.from_email))
+              m.id, m.account_id, m.subject, m.from_name, m.from_email, m.date,
+              COALESCE(NULLIF(m.body_text, ''), m.snippet) AS body
+         FROM messages m
+         JOIN email_accounts a ON a.id = m.account_id
+        WHERE a.user_id = $1
+          AND m.is_deleted = false
+          AND m.from_email IS NOT NULL
+          AND m.subject ~* $2
+        ORDER BY lower(m.from_email), m.date DESC
+     )
+     SELECT id, account_id, subject, from_name, from_email, date, body
+       FROM latest
+      WHERE NOT EXISTS (SELECT 1 FROM ooo_scan_state s WHERE s.message_id = latest.id)
+      ORDER BY date DESC
       LIMIT $3`,
     [userId, OOO_SUBJECT_RE, MAX_PER_RUN]
   );
@@ -145,7 +169,7 @@ export async function scanUserOoo(userId) {
     if (providerError) return;
     let result;
     try {
-      const raw = await aiComplete(cfg, buildOooPrompt({
+      const raw = await aiComplete(oooCfg, buildOooPrompt({
         subject: m.subject,
         from: m.from_name || m.from_email,
         body: m.body,
@@ -201,12 +225,18 @@ export async function scanUserOoo(userId) {
     );
   }
 
-  // Rough remaining count so a caller/UI can tell the first sweep isn't finished.
+  // Remaining senders whose latest out-of-office reply is still unscanned — the same
+  // per-sender unit the candidate query works in, so the UI counts people, not copies.
   const { rows: rem } = await query(
-    `SELECT COUNT(*)::int AS n
-       FROM messages m JOIN email_accounts a ON a.id = m.account_id
-      WHERE a.user_id = $1 AND m.is_deleted = false AND m.subject ~* $2
-        AND NOT EXISTS (SELECT 1 FROM ooo_scan_state s WHERE s.message_id = m.id)`,
+    `WITH latest AS (
+       SELECT DISTINCT ON (lower(m.from_email)) m.id
+         FROM messages m JOIN email_accounts a ON a.id = m.account_id
+        WHERE a.user_id = $1 AND m.is_deleted = false AND m.from_email IS NOT NULL
+          AND m.subject ~* $2
+        ORDER BY lower(m.from_email), m.date DESC
+     )
+     SELECT COUNT(*)::int AS n FROM latest
+      WHERE NOT EXISTS (SELECT 1 FROM ooo_scan_state s WHERE s.message_id = latest.id)`,
     [userId, OOO_SUBJECT_RE]
   );
 
