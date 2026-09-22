@@ -3905,6 +3905,17 @@ function AISection() {
     setMsg({ type: 'ok', text: t('admin.ai.removed') });
   };
 
+  const [oooBusy, setOooBusy] = useState(false);
+  const handleOooScan = async () => {
+    setOooBusy(true); setMsg(null);
+    try {
+      const r = await api.ai.scanOoo();
+      setMsg({ type: 'ok', text: r?.alreadyRunning ? t('admin.ai.oooRunning') : t('admin.ai.oooStarted') });
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message });
+    } finally { setOooBusy(false); }
+  };
+
   const field = (label, key, type = 'text', placeholder = '') => (
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 }}>{label}</label>
@@ -3998,6 +4009,27 @@ function AISection() {
           {saving ? t('common.saving') : t('common.save')}
         </button>
       </form>
+
+      {/* Out-of-office → contact updates */}
+      <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-subtle)' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+          {t('admin.ai.oooTitle')}
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          {t('admin.ai.oooDescription')}
+        </p>
+        <button
+          type="button"
+          onClick={handleOooScan}
+          disabled={oooBusy || !config?.enabled}
+          style={{ padding: '8px 16px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: (oooBusy || !config?.enabled) ? 'default' : 'pointer', opacity: (oooBusy || !config?.enabled) ? 0.5 : 1 }}
+        >
+          {oooBusy ? t('admin.ai.oooStarting') : t('admin.ai.oooScan')}
+        </button>
+        {!config?.enabled && (
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>{t('admin.ai.oooNeedsConfig')}</div>
+        )}
+      </div>
     </div>
   );
 }

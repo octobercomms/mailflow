@@ -316,6 +316,8 @@ export const api = {
     deleteConfig: () => request('DELETE', '/admin/ai'),
     test: () => request('POST', '/admin/ai/test'),
     status: () => request('GET', '/ai/status'),
+    scanOoo: () => request('POST', '/ooo/scan'),
+    getOooSuggestions: () => request('GET', '/ooo/suggestions'),
   },
 
   // Category counts for inbox tab badges

@@ -6,6 +6,7 @@ import { validateHost } from '../services/hostValidation.js';
 import { getConnectionPolicy } from '../services/connectionPolicy.js';
 import { imapManager } from '../index.js';
 import { generateFolderTasks, loadAiConfig, loadLegendText, saveLegendText, parseLegend } from '../services/taskGenerator.js';
+import { scanUserOoo } from '../services/oooScanner.js';
 
 const router = Router();
 
@@ -258,6 +259,45 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
     res.json({ tasks, scanned, capped });
   } catch (err) {
     return res.status(err.status || 502).json({ error: err.message || 'AI request failed' });
+  }
+});
+
+// ── Out-of-office contact-update scan ─────────────────────────────────────────
+// Scans auto-reply / out-of-office mail across all of the user's accounts and folders,
+// extracts lasting contact changes, stores suggestions, and emails the user a summary.
+// Runs in the background (the sweep can be long); the response returns immediately.
+const _oooScanRunning = new Set();
+
+router.post('/ooo/scan', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  // Fail fast with a clear error if no AI provider is configured.
+  try { await loadAiConfig(); }
+  catch (err) { return res.status(err.status || 503).json({ error: err.message || 'AI not configured' }); }
+
+  if (_oooScanRunning.has(userId)) return res.json({ started: false, alreadyRunning: true });
+  _oooScanRunning.add(userId);
+  scanUserOoo(userId)
+    .then(summary => console.log(`OOO scan for user ${userId}: scanned ${summary.scanned}, ${summary.suggestions} suggestion(s), ${summary.remaining} remaining`))
+    .catch(err => console.error(`OOO scan for user ${userId} failed:`, err.message))
+    .finally(() => _oooScanRunning.delete(userId));
+
+  res.json({ started: true });
+});
+
+router.get('/ooo/suggestions', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, category, person_name, person_email, new_email, new_company, role,
+              alt_contacts, source_quote, from_email, subject, message_date, confidence, status, created_at
+         FROM ooo_suggestions
+        WHERE user_id = $1 AND status <> 'dismissed'
+        ORDER BY created_at DESC
+        LIMIT 500`,
+      [req.session.userId]
+    );
+    res.json({ suggestions: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to load suggestions' });
   }
 });
 
