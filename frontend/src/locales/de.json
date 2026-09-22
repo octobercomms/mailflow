@@ -1024,7 +1024,6 @@
       "oooTitle": "Kontakt-Updates aus Abwesenheitsantworten",
       "oooDescription": "Durchsucht Ihre Abwesenheits- und automatischen Antworten über alle Konten und Ordner nach dauerhaften Kontaktänderungen: eine neue Adresse, jemand der gewechselt hat, oder eine weitere hinzuzufügende Person. MailFlow sendet Ihnen eine Liste zur Prüfung. Es wird nichts automatisch geändert.",
       "oooScan": "E-Mails nach Kontakt-Updates durchsuchen",
-      "oooStarting": "Wird gestartet…",
       "oooStarted": "Scan gestartet. Sie erhalten eine E-Mail mit den Ergebnissen.",
       "oooRunning": "Ein Scan läuft bereits.",
       "oooNeedsConfig": "Bitte zuerst oben einen KI-Anbieter einrichten und aktivieren.",

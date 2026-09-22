@@ -1091,7 +1091,6 @@
       "oooTitle": "Aggiornamenti dei contatti dalle risposte di assenza",
       "oooDescription": "Analizza le tue risposte di assenza e automatiche in tutti gli account e le cartelle per individuare cambiamenti di contatto duraturi: un nuovo indirizzo, qualcuno che si è spostato o un’altra persona da aggiungere. MailFlow ti invia un elenco da rivedere. Nulla viene modificato automaticamente.",
       "oooScan": "Analizza la posta per aggiornamenti dei contatti",
-      "oooStarting": "Avvio…",
       "oooStarted": "Analisi avviata. Riceverai un’email con ciò che trova.",
       "oooRunning": "Un’analisi è già in corso.",
       "oooNeedsConfig": "Configura e abilita prima un provider IA qui sopra.",
