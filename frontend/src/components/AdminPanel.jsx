@@ -3906,14 +3906,38 @@ function AISection() {
   };
 
   const [oooBusy, setOooBusy] = useState(false);
+  const [oooStatus, setOooStatus] = useState(null);       // { running, lastRun, total }
+  const [oooSuggestions, setOooSuggestions] = useState([]);
+
+  const loadOoo = async () => {
+    try {
+      const [st, sg] = await Promise.all([api.ai.oooStatus(), api.ai.getOooSuggestions()]);
+      setOooStatus(st);
+      setOooSuggestions(sg?.suggestions || []);
+    } catch { /* ignore transient errors */ }
+  };
+  useEffect(() => { if (config?.enabled) loadOoo(); }, [config?.enabled]);
+  // Poll while a scan is running so the counts and results update live.
+  useEffect(() => {
+    if (!oooStatus?.running) return;
+    const timer = setInterval(loadOoo, 3000);
+    return () => clearInterval(timer);
+  }, [oooStatus?.running]);
+
   const handleOooScan = async () => {
     setOooBusy(true); setMsg(null);
     try {
       const r = await api.ai.scanOoo();
       setMsg({ type: 'ok', text: r?.alreadyRunning ? t('admin.ai.oooRunning') : t('admin.ai.oooStarted') });
+      loadOoo();
     } catch (err) {
       setMsg({ type: 'error', text: err.message });
     } finally { setOooBusy(false); }
+  };
+
+  const handleOooDismiss = async (id) => {
+    setOooSuggestions(list => list.filter(s => s.id !== id));
+    try { await api.ai.dismissOooSuggestion(id); } catch { loadOoo(); }
   };
 
   const field = (label, key, type = 'text', placeholder = '') => (
@@ -4018,16 +4042,81 @@ function AISection() {
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
           {t('admin.ai.oooDescription')}
         </p>
-        <button
-          type="button"
-          onClick={handleOooScan}
-          disabled={oooBusy || !config?.enabled}
-          style={{ padding: '8px 16px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: (oooBusy || !config?.enabled) ? 'default' : 'pointer', opacity: (oooBusy || !config?.enabled) ? 0.5 : 1 }}
-        >
-          {oooBusy ? t('admin.ai.oooStarting') : t('admin.ai.oooScan')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleOooScan}
+            disabled={oooBusy || oooStatus?.running || !config?.enabled}
+            style={{ padding: '8px 16px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: (oooBusy || oooStatus?.running || !config?.enabled) ? 'default' : 'pointer', opacity: (oooBusy || oooStatus?.running || !config?.enabled) ? 0.5 : 1 }}
+          >
+            {(oooBusy || oooStatus?.running) ? t('admin.ai.oooScanning') : t('admin.ai.oooScan')}
+          </button>
+          {oooStatus?.running && (
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('admin.ai.oooInProgress')}</span>
+          )}
+        </div>
+
         {!config?.enabled && (
           <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>{t('admin.ai.oooNeedsConfig')}</div>
+        )}
+
+        {/* Last-run summary / provider error */}
+        {config?.enabled && oooStatus?.lastRun && !oooStatus.running && (
+          oooStatus.lastRun.providerError || oooStatus.lastRun.error ? (
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              {t('admin.ai.oooProviderError')}
+              <div style={{ marginTop: 4, color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, wordBreak: 'break-word' }}>
+                {oooStatus.lastRun.providerError || oooStatus.lastRun.error}
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
+              {t('admin.ai.oooLastRun', { scanned: oooStatus.lastRun.scanned, found: oooStatus.lastRun.suggestions, remaining: oooStatus.lastRun.remaining })}
+              {oooStatus.lastRun.remaining > 0 && ` ${t('admin.ai.oooMoreRemaining')}`}
+            </div>
+          )
+        )}
+
+        {/* Suggestions list */}
+        {oooSuggestions.length > 0 && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {t('admin.ai.oooFound', { count: oooSuggestions.length })}
+            </div>
+            {oooSuggestions.map(s => (
+              <div key={s.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                    {s.category === 'left_or_moved' ? (
+                      <>
+                        <strong>{s.person_name || s.from_email}</strong>
+                        {s.new_email && <> — {t('admin.ai.oooNewEmail')}: <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{s.new_email}</span></>}
+                        {s.new_company && <> — {t('admin.ai.oooNowAt')} {s.new_company}</>}
+                      </>
+                    ) : (
+                      <>
+                        {t('admin.ai.oooMentioned')}: {(s.alt_contacts || []).map(a => [a.name, a.email].filter(Boolean).join(' ')).filter(Boolean).join('; ') || (s.from_email)}
+                      </>
+                    )}
+                  </div>
+                  {s.source_quote && (
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, fontStyle: 'italic' }}>“{s.source_quote}”</div>
+                  )}
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                    {t('admin.ai.oooFrom')} {s.from_email}{s.subject ? ` · ${s.subject}` : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOooDismiss(s.id)}
+                  title={t('admin.ai.oooDismiss')}
+                  style={{ flexShrink: 0, padding: '5px 10px', background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12 }}
+                >
+                  {t('admin.ai.oooDismiss')}
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

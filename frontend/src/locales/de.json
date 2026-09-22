@@ -1027,7 +1027,18 @@
       "oooStarting": "Wird gestartet…",
       "oooStarted": "Scan gestartet. Sie erhalten eine E-Mail mit den Ergebnissen.",
       "oooRunning": "Ein Scan läuft bereits.",
-      "oooNeedsConfig": "Bitte zuerst oben einen KI-Anbieter einrichten und aktivieren."
+      "oooNeedsConfig": "Bitte zuerst oben einen KI-Anbieter einrichten und aktivieren.",
+      "oooScanning": "Wird gescannt…",
+      "oooInProgress": "Scan läuft. Das kann einige Minuten dauern; Sie können die Seite verlassen.",
+      "oooLastRun": "Letzter Scan: {{scanned}} analysiert, {{found}} gefunden, {{remaining}} noch zu scannen.",
+      "oooMoreRemaining": "Erneut ausführen, um fortzufahren.",
+      "oooProviderError": "Ihr KI-Anbieter hat die Anfrage abgelehnt (oft ein Guthaben- oder Nutzungslimit). Beheben Sie das beim Anbieter und scannen Sie erneut.",
+      "oooFound": "{{count}} Vorschlag/Vorschläge zur Prüfung",
+      "oooNewEmail": "neue E-Mail",
+      "oooNowAt": "jetzt bei",
+      "oooMentioned": "Erwähnter Kontakt",
+      "oooFrom": "Von",
+      "oooDismiss": "Verwerfen"
     },
     "aiActions": {
       "description": "Erstellen Sie eigene KI-Aktionen. Sie erscheinen beim Lesen einer Nachricht im KI-Menü neben „Zusammenfassen“. Der Prompt jeder Aktion wird auf den Nachrichteninhalt angewendet.",

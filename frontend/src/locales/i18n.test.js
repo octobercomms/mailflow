@@ -115,6 +115,7 @@ const dir = dirname(fileURLToPath(import.meta.url));
 // Any unlisted pair will still fail.
 const SAME_VALUE_ALLOWED = {
   // ── Universal placeholders / brand names (all locales share) ───────────────
+  'admin.ai.oooFrom':                       'any', // "From" label — "De" is the natural word in both es and fr
   'admin.about.kofi':                       'any', // Ko-fi — brand name, same everywhere
   'admin.about.githubSponsors':             'any', // GitHub Sponsors — product name, same everywhere
   'admin.categories.gtdReveal':             'any', // "GTD" — brand-like acronym, same everywhere

@@ -1094,7 +1094,18 @@
       "oooStarting": "Démarrage…",
       "oooStarted": "Analyse lancée. Vous recevrez un e-mail avec les résultats.",
       "oooRunning": "Une analyse est déjà en cours.",
-      "oooNeedsConfig": "Configurez et activez d’abord un fournisseur d’IA ci-dessus."
+      "oooNeedsConfig": "Configurez et activez d’abord un fournisseur d’IA ci-dessus.",
+      "oooScanning": "Analyse…",
+      "oooInProgress": "Analyse en cours. Cela peut prendre quelques minutes ; vous pouvez quitter cette page.",
+      "oooLastRun": "Dernière analyse : {{scanned}} analysés, {{found}} trouvés, {{remaining}} restants.",
+      "oooMoreRemaining": "Relancez pour continuer.",
+      "oooProviderError": "Votre fournisseur d’IA a rejeté la requête (souvent un manque de crédit ou une limite d’usage). Corrigez-le chez le fournisseur, puis relancez l’analyse.",
+      "oooFound": "{{count}} suggestion(s) à examiner",
+      "oooNewEmail": "nouvel e-mail",
+      "oooNowAt": "désormais chez",
+      "oooMentioned": "Contact mentionné",
+      "oooFrom": "De",
+      "oooDismiss": "Ignorer"
     },
     "aiActions": {
       "description": "Créez vos propres actions IA. Elles apparaissent dans le menu IA lors de la lecture d'un message, à côté de Résumer. Le prompt de chaque action est appliqué au contenu du message.",

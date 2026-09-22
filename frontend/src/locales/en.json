@@ -1094,7 +1094,18 @@
       "oooStarting": "Starting…",
       "oooStarted": "Scan started. You'll get an email with anything it finds.",
       "oooRunning": "A scan is already running.",
-      "oooNeedsConfig": "Configure and enable an AI provider above first."
+      "oooNeedsConfig": "Configure and enable an AI provider above first.",
+      "oooScanning": "Scanning…",
+      "oooInProgress": "Scan running. This can take a few minutes; you can leave this page.",
+      "oooLastRun": "Last scan: analysed {{scanned}}, found {{found}}, {{remaining}} still to scan.",
+      "oooMoreRemaining": "Run again to continue.",
+      "oooProviderError": "Your AI provider rejected the request (often an out-of-credit or usage-limit error). Fix it on the provider, then scan again.",
+      "oooFound": "{{count}} suggestion(s) to review",
+      "oooNewEmail": "new email",
+      "oooNowAt": "now at",
+      "oooMentioned": "Mentioned contact",
+      "oooFrom": "From",
+      "oooDismiss": "Dismiss"
     },
     "aiActions": {
       "description": "Create your own AI actions. They appear in the AI menu when reading a message, alongside Summarize. Each action's prompt is applied to the message content.",
