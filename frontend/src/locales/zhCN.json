@@ -1104,7 +1104,8 @@
       "oooNowAt": "现就职于",
       "oooMentioned": "提及的联系人",
       "oooFrom": "来自",
-      "oooDismiss": "忽略"
+      "oooDismiss": "忽略",
+      "featureOooDaily": "每日扫描外出自动回复"
     },
     "aiActions": {
       "description": "创建你自己的 AI 操作。它们会在阅读邮件时出现在 AI 菜单中，与“摘要”并列。每个操作的提示词会应用于邮件内容。",

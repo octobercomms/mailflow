@@ -3859,7 +3859,7 @@ function AISection() {
   const { t } = useTranslation();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ enabled: true, baseUrl: '', apiKey: '', model: '', features: { compose: true, summarize: true } });
+  const [form, setForm] = useState({ enabled: true, baseUrl: '', apiKey: '', model: '', features: { compose: true, summarize: true, oooDaily: false } });
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -3869,7 +3869,7 @@ function AISection() {
       .then(({ config: cfg }) => {
         if (cfg) {
           setConfig(cfg);
-          setForm({ enabled: cfg.enabled !== false, baseUrl: cfg.baseUrl || '', apiKey: cfg.apiKey || '', model: cfg.model || '', features: { compose: cfg.features?.compose !== false, summarize: cfg.features?.summarize !== false } });
+          setForm({ enabled: cfg.enabled !== false, baseUrl: cfg.baseUrl || '', apiKey: cfg.apiKey || '', model: cfg.model || '', features: { compose: cfg.features?.compose !== false, summarize: cfg.features?.summarize !== false, oooDaily: cfg.features?.oooDaily === true } });
         }
       })
       .catch(console.error)
@@ -4024,6 +4024,7 @@ function AISection() {
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{t('admin.ai.features')}</div>
           {toggle(t('admin.ai.featureCompose'), form.features.compose, () => setForm(f => ({ ...f, features: { ...f.features, compose: !f.features.compose } })))}
           {toggle(t('admin.ai.featureSummarize'), form.features.summarize, () => setForm(f => ({ ...f, features: { ...f.features, summarize: !f.features.summarize } })))}
+          {toggle(t('admin.ai.featureOooDaily'), form.features.oooDaily, () => setForm(f => ({ ...f, features: { ...f.features, oooDaily: !f.features.oooDaily } })))}
         </div>
 
         {msgBox}

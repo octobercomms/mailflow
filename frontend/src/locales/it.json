@@ -1104,7 +1104,8 @@
       "oooNowAt": "ora presso",
       "oooMentioned": "Contatto menzionato",
       "oooFrom": "Da",
-      "oooDismiss": "Ignora"
+      "oooDismiss": "Ignora",
+      "featureOooDaily": "Analizza le risposte fuori sede ogni giorno"
     },
     "aiActions": {
       "description": "Crea le tue azioni IA. Appaiono nel menu IA durante la lettura di un messaggio, accanto a Riassumi. Il prompt di ogni azione viene applicato al contenuto del messaggio.",

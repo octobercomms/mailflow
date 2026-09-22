@@ -60,6 +60,8 @@ router.patch('/admin/ai', requireAdmin, async (req, res) => {
     features: {
       compose: features?.compose !== false,
       summarize: features?.summarize !== false,
+      // Opt-in: run the out-of-office contact scan once a day (off unless explicitly set).
+      oooDaily: features?.oooDaily === true,
     },
   };
 
