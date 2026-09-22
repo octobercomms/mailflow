@@ -1037,7 +1037,8 @@
       "oooNowAt": "jetzt bei",
       "oooMentioned": "Erwähnter Kontakt",
       "oooFrom": "Von",
-      "oooDismiss": "Verwerfen"
+      "oooDismiss": "Verwerfen",
+      "featureOooDaily": "Abwesenheitsantworten täglich scannen"
     },
     "aiActions": {
       "description": "Erstellen Sie eigene KI-Aktionen. Sie erscheinen beim Lesen einer Nachricht im KI-Menü neben „Zusammenfassen“. Der Prompt jeder Aktion wird auf den Nachrichteninhalt angewendet.",

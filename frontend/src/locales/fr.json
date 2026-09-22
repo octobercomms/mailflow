@@ -1104,7 +1104,8 @@
       "oooNowAt": "désormais chez",
       "oooMentioned": "Contact mentionné",
       "oooFrom": "De",
-      "oooDismiss": "Ignorer"
+      "oooDismiss": "Ignorer",
+      "featureOooDaily": "Analyser les réponses d'absence chaque jour"
     },
     "aiActions": {
       "description": "Créez vos propres actions IA. Elles apparaissent dans le menu IA lors de la lecture d'un message, à côté de Résumer. Le prompt de chaque action est appliqué au contenu du message.",

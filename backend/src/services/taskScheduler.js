@@ -2,6 +2,8 @@ import { query } from './db.js';
 import { refreshUserTasks } from './taskRefresh.js';
 import { runDraftSweep } from './draftWriter.js';
 import { generateDailyBrief } from './dailyBrief.js';
+import { loadAiConfig } from './taskGenerator.js';
+import { scanUserOoo } from './oooScanner.js';
 
 // Daily auto-refresh of the Tasks hub. Polls every few minutes; for each user who
 // has opted in (preferences.taskAutoRefresh.enabled) and has task folders set, runs
@@ -10,9 +12,12 @@ import { generateDailyBrief } from './dailyBrief.js';
 
 const POLL_MS = 5 * 60 * 1000;        // 5 minutes — daily refresh gate
 const DRAFT_POLL_MS = 20 * 60 * 1000; // 20 minutes — background draft sweep
+const OOO_POLL_MS = 30 * 60 * 1000;   // 30 minutes — out-of-office scan gate (not time-critical)
+const OOO_HOUR = 7;                   // local hour at/after which the daily OOO scan runs
 const DEFAULT_TZ = process.env.TASK_TZ || 'Europe/London';
 let timer = null;
 let draftTimer = null;
+let oooTimer = null;
 
 // { hour: 0-23, date: 'YYYY-MM-DD' } in the given IANA timezone.
 function localParts(tz) {
@@ -91,6 +96,48 @@ async function draftTick() {
   }
 }
 
+async function stampOooLastRun(userId, date) {
+  await query(
+    `UPDATE users SET preferences =
+       jsonb_set(COALESCE(preferences,'{}'::jsonb), '{oooScan,lastRun}', to_jsonb($2::text), true)
+     WHERE id = $1`,
+    [userId, date]
+  );
+}
+
+// Daily out-of-office scan. Opt-in per instance via ai_config.features.oooDaily. For each
+// user, once per local day at/after OOO_HOUR, scan their auto-replies for lasting contact
+// changes (de-duplicated by sender, so a full history sweep is one pass). Stamp the day
+// before running so a provider that's over its cap simply waits until tomorrow instead of
+// retrying every poll — a failed run marks nothing scanned and sends no email, so it is a
+// silent no-op until access returns.
+async function oooTick() {
+  let cfg;
+  try { cfg = await loadAiConfig(); }   // throws when AI is off/unconfigured → nothing to do
+  catch { return; }
+  if (!cfg.features?.oooDaily) return;   // feature toggle off
+
+  let users;
+  try { users = await query('SELECT id, preferences FROM users'); }
+  catch (e) { console.warn('[ooo-scan] user query failed:', e.message); return; }
+
+  for (const u of users.rows) {
+    const prefs = u.preferences || {};
+    const state = prefs.oooScan || {};
+    const tz = state.tz || DEFAULT_TZ;
+    const { hour, date } = localParts(tz);
+    if (hour < OOO_HOUR || state.lastRun === date) continue;
+
+    await stampOooLastRun(u.id, date).catch(() => {});
+    try {
+      const r = await scanUserOoo(u.id);
+      console.log(`[ooo-scan] ${u.id}: scanned ${r.scanned}, ${r.suggestions} suggestion(s), ${r.remaining} remaining${r.providerError ? ` (provider: ${r.providerError})` : ''}`);
+    } catch (e) {
+      console.warn(`[ooo-scan] ${u.id}: ${e.message}`);
+    }
+  }
+}
+
 export function startTaskScheduler() {
   if (timer) return;
   // A first tick shortly after boot catches a user whose target hour already passed
@@ -103,10 +150,15 @@ export function startTaskScheduler() {
   if (draftTimer.unref) draftTimer.unref();
   setTimeout(() => { draftTick().catch(() => {}); }, 90000).unref?.();
 
-  console.log(`[task-scheduler] started (poll ${POLL_MS / 60000}m, drafts ${DRAFT_POLL_MS / 60000}m, default tz ${DEFAULT_TZ})`);
+  oooTimer = setInterval(() => { oooTick().catch(e => console.warn('[ooo-scan] tick error:', e.message)); }, OOO_POLL_MS);
+  if (oooTimer.unref) oooTimer.unref();
+  setTimeout(() => { oooTick().catch(() => {}); }, 120000).unref?.();
+
+  console.log(`[task-scheduler] started (poll ${POLL_MS / 60000}m, drafts ${DRAFT_POLL_MS / 60000}m, ooo ${OOO_POLL_MS / 60000}m, default tz ${DEFAULT_TZ})`);
 }
 
 export function stopTaskScheduler() {
   if (timer) { clearInterval(timer); timer = null; }
   if (draftTimer) { clearInterval(draftTimer); draftTimer = null; }
+  if (oooTimer) { clearInterval(oooTimer); oooTimer = null; }
 }
