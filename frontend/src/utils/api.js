@@ -317,7 +317,9 @@ export const api = {
     test: () => request('POST', '/admin/ai/test'),
     status: () => request('GET', '/ai/status'),
     scanOoo: () => request('POST', '/ooo/scan'),
+    oooStatus: () => request('GET', '/ooo/status'),
     getOooSuggestions: () => request('GET', '/ooo/suggestions'),
+    dismissOooSuggestion: (id) => request('POST', `/ooo/suggestions/${id}/dismiss`),
   },
 
   // Category counts for inbox tab badges

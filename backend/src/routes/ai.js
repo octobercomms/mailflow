@@ -267,6 +267,7 @@ router.post('/ai/tasks', requireAuth, async (req, res) => {
 // extracts lasting contact changes, stores suggestions, and emails the user a summary.
 // Runs in the background (the sweep can be long); the response returns immediately.
 const _oooScanRunning = new Set();
+const _oooLastRun = new Map(); // userId -> { scanned, suggestions, remaining, at, error }
 
 router.post('/ooo/scan', requireAuth, async (req, res) => {
   const userId = req.session.userId;
@@ -277,11 +278,41 @@ router.post('/ooo/scan', requireAuth, async (req, res) => {
   if (_oooScanRunning.has(userId)) return res.json({ started: false, alreadyRunning: true });
   _oooScanRunning.add(userId);
   scanUserOoo(userId)
-    .then(summary => console.log(`OOO scan for user ${userId}: scanned ${summary.scanned}, ${summary.suggestions} suggestion(s), ${summary.remaining} remaining`))
-    .catch(err => console.error(`OOO scan for user ${userId} failed:`, err.message))
+    .then(summary => {
+      console.log(`OOO scan for user ${userId}: scanned ${summary.scanned}, ${summary.suggestions} suggestion(s), ${summary.remaining} remaining`);
+      _oooLastRun.set(userId, { ...summary, at: new Date().toISOString(), error: null });
+    })
+    .catch(err => {
+      console.error(`OOO scan for user ${userId} failed:`, err.message);
+      _oooLastRun.set(userId, { scanned: 0, suggestions: 0, remaining: 0, at: new Date().toISOString(), error: err.message });
+    })
     .finally(() => _oooScanRunning.delete(userId));
 
   res.json({ started: true });
+});
+
+// Live scan status for the settings page: whether a scan is running, the last run's
+// summary, and the current number of open suggestions.
+router.get('/ooo/status', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  let total = 0;
+  try {
+    const r = await query("SELECT COUNT(*)::int AS n FROM ooo_suggestions WHERE user_id = $1 AND status <> 'dismissed'", [userId]);
+    total = r.rows[0]?.n ?? 0;
+  } catch { /* table may not exist yet pre-migration — treat as zero */ }
+  res.json({ running: _oooScanRunning.has(userId), lastRun: _oooLastRun.get(userId) || null, total });
+});
+
+router.post('/ooo/suggestions/:id/dismiss', requireAuth, async (req, res) => {
+  try {
+    await query(
+      "UPDATE ooo_suggestions SET status = 'dismissed' WHERE id = $1 AND user_id = $2",
+      [req.params.id, req.session.userId]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to dismiss' });
+  }
 });
 
 router.get('/ooo/suggestions', requireAuth, async (req, res) => {

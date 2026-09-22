@@ -1091,10 +1091,20 @@
       "oooTitle": "从外出自动回复中更新联系人",
       "oooDescription": "扫描所有账户和文件夹中的外出/自动回复邮件，查找持久的联系人变更：新地址、已离职或换单位的人，或需要新增的其他人。MailFlow 会给你发送一份清单供审核。不会自动更改任何内容。",
       "oooScan": "扫描邮件以更新联系人",
-      "oooStarting": "正在启动…",
       "oooStarted": "扫描已开始。找到结果后会给你发送邮件。",
       "oooRunning": "扫描已在进行中。",
-      "oooNeedsConfig": "请先在上方配置并启用 AI 提供商。"
+      "oooNeedsConfig": "请先在上方配置并启用 AI 提供商。",
+      "oooScanning": "扫描中…",
+      "oooInProgress": "扫描进行中。可能需要几分钟；你可以离开此页面。",
+      "oooLastRun": "上次扫描：已分析 {{scanned}}，发现 {{found}}，还有 {{remaining}} 待扫描。",
+      "oooMoreRemaining": "再次运行以继续。",
+      "oooProviderError": "AI 提供商拒绝了请求（通常是余额不足或使用限制）。请在提供商处解决后重新扫描。",
+      "oooFound": "{{count}} 条待审核建议",
+      "oooNewEmail": "新邮箱",
+      "oooNowAt": "现就职于",
+      "oooMentioned": "提及的联系人",
+      "oooFrom": "来自",
+      "oooDismiss": "忽略"
     },
     "aiActions": {
       "description": "创建你自己的 AI 操作。它们会在阅读邮件时出现在 AI 菜单中，与“摘要”并列。每个操作的提示词会应用于邮件内容。",

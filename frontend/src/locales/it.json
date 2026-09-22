@@ -1091,10 +1091,20 @@
       "oooTitle": "Aggiornamenti dei contatti dalle risposte di assenza",
       "oooDescription": "Analizza le tue risposte di assenza e automatiche in tutti gli account e le cartelle per individuare cambiamenti di contatto duraturi: un nuovo indirizzo, qualcuno che si è spostato o un’altra persona da aggiungere. MailFlow ti invia un elenco da rivedere. Nulla viene modificato automaticamente.",
       "oooScan": "Analizza la posta per aggiornamenti dei contatti",
-      "oooStarting": "Avvio…",
       "oooStarted": "Analisi avviata. Riceverai un’email con ciò che trova.",
       "oooRunning": "Un’analisi è già in corso.",
-      "oooNeedsConfig": "Configura e abilita prima un provider IA qui sopra."
+      "oooNeedsConfig": "Configura e abilita prima un provider IA qui sopra.",
+      "oooScanning": "Analisi…",
+      "oooInProgress": "Analisi in corso. Può richiedere qualche minuto; puoi lasciare questa pagina.",
+      "oooLastRun": "Ultima analisi: {{scanned}} analizzati, {{found}} trovati, {{remaining}} da analizzare.",
+      "oooMoreRemaining": "Esegui di nuovo per continuare.",
+      "oooProviderError": "Il tuo provider IA ha rifiutato la richiesta (spesso credito esaurito o limite di utilizzo). Risolvi sul provider e riprova.",
+      "oooFound": "{{count}} suggerimento/i da rivedere",
+      "oooNewEmail": "nuova email",
+      "oooNowAt": "ora presso",
+      "oooMentioned": "Contatto menzionato",
+      "oooFrom": "Da",
+      "oooDismiss": "Ignora"
     },
     "aiActions": {
       "description": "Crea le tue azioni IA. Appaiono nel menu IA durante la lettura di un messaggio, accanto a Riassumi. Il prompt di ogni azione viene applicato al contenuto del messaggio.",

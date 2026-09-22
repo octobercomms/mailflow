@@ -137,7 +137,12 @@ export async function scanUserOoo(userId) {
   );
 
   const created = [];
+  // A provider-level failure (quota exhausted, bad key, rate limit) hits every message,
+  // so as soon as we see one, stop the run instead of hammering hundreds of dead calls.
+  // The affected messages stay unscanned and retry once access returns.
+  let providerError = null;
   await bounded(candidates, SCAN_CONCURRENCY, async (m) => {
+    if (providerError) return;
     let result;
     try {
       const raw = await aiComplete(cfg, buildOooPrompt({
@@ -148,6 +153,9 @@ export async function scanUserOoo(userId) {
       result = parseOooResult(raw);
     } catch (err) {
       console.warn(`OOO scan: AI call failed for message ${m.id}: ${err.message}`);
+      if (/usage limit|quota|rate limit|too many request|insufficient|billing|invalid api key|unauthor|\b(401|402|403|429)\b/i.test(err.message)) {
+        providerError = err.message;
+      }
       // Leave this message unscanned so a later run retries it, then move on.
       return;
     }
@@ -202,7 +210,12 @@ export async function scanUserOoo(userId) {
     [userId, OOO_SUBJECT_RE]
   );
 
-  return { scanned: candidates.length, suggestions: created.length, remaining: rem[0]?.n ?? 0 };
+  return {
+    scanned: candidates.length,
+    suggestions: created.length,
+    remaining: rem[0]?.n ?? 0,
+    providerError,
+  };
 }
 
 async function notifyUser(userId, created) {

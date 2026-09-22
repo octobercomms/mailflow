@@ -1091,10 +1091,20 @@
       "oooTitle": "Contact updates from out-of-office replies",
       "oooDescription": "Scan your out-of-office and auto-reply emails across every account and folder for lasting contact changes: a new address, someone who has moved, or another person to add. MailFlow emails you a list to review. Nothing is changed automatically.",
       "oooScan": "Scan mail for contact updates",
-      "oooStarting": "Starting…",
       "oooStarted": "Scan started. You'll get an email with anything it finds.",
       "oooRunning": "A scan is already running.",
-      "oooNeedsConfig": "Configure and enable an AI provider above first."
+      "oooNeedsConfig": "Configure and enable an AI provider above first.",
+      "oooScanning": "Scanning…",
+      "oooInProgress": "Scan running. This can take a few minutes; you can leave this page.",
+      "oooLastRun": "Last scan: analysed {{scanned}}, found {{found}}, {{remaining}} still to scan.",
+      "oooMoreRemaining": "Run again to continue.",
+      "oooProviderError": "Your AI provider rejected the request (often an out-of-credit or usage-limit error). Fix it on the provider, then scan again.",
+      "oooFound": "{{count}} suggestion(s) to review",
+      "oooNewEmail": "new email",
+      "oooNowAt": "now at",
+      "oooMentioned": "Mentioned contact",
+      "oooFrom": "From",
+      "oooDismiss": "Dismiss"
     },
     "aiActions": {
       "description": "Create your own AI actions. They appear in the AI menu when reading a message, alongside Summarize. Each action's prompt is applied to the message content.",
