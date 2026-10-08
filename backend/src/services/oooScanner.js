@@ -248,6 +248,47 @@ export async function scanUserOoo(userId) {
   };
 }
 
+// Flatten suggestions into a contact-upload CSV: one row per CONTACT, not per email.
+// A moved/left sender becomes a row with their new address; each alternate contact a
+// mentions_alt_contact message names becomes its own row. This is the shape you hand
+// straight to a contact importer (or to an assistant to clean up and upload). Pure and
+// exported for testing. `rows` are DB-shaped ooo_suggestions records.
+export function suggestionsToCsv(rows) {
+  const header = ['name', 'email', 'company', 'role', 'change_type',
+    'source_sender', 'source_subject', 'source_date', 'confidence', 'quote'];
+  const esc = (v) => `"${(v == null ? '' : String(v)).replace(/"/g, '""')}"`;
+  const line = (cells) => cells.map(esc).join(',');
+  const dateStr = (d) => {
+    if (!d) return '';
+    const dt = new Date(d);
+    return Number.isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+  };
+  const out = [line(header)];
+  for (const r of rows || []) {
+    let alt = r.alt_contacts;
+    if (typeof alt === 'string') { try { alt = JSON.parse(alt); } catch { alt = []; } }
+    if (!Array.isArray(alt)) alt = [];
+    const ctx = [
+      r.from_email || '', r.subject || '', dateStr(r.message_date),
+      r.confidence != null ? Number(r.confidence).toFixed(2) : '', r.source_quote || '',
+    ];
+    if (r.category === 'left_or_moved') {
+      out.push(line([
+        r.person_name || '',
+        r.new_email || r.person_email || r.from_email || '',
+        r.new_company || '', r.role || '', 'moved / new address', ...ctx,
+      ]));
+    }
+    for (const a of alt) {
+      out.push(line([
+        a?.name || '', a?.email || '', a?.company || '', a?.role || '',
+        'mentioned contact', ...ctx,
+      ]));
+    }
+  }
+  return out.join('\r\n') + '\r\n';
+}
+
 async function notifyUser(userId, created) {
   // No primary email on the user record — notify the recovery address if set, else the
   // user's first email account (their own mailbox).
@@ -280,11 +321,34 @@ async function notifyUser(userId, created) {
   const text =
     `MailFlow scanned your out-of-office replies and found ${created.length} possible contact update(s) to review:\n\n` +
     lines.join('\n\n') +
-    `\n\nThese are suggestions only — nothing has been changed. Review and apply the ones you want.`;
+    `\n\nThese are suggestions only — nothing has been changed. A CSV of every update is attached: ` +
+    `one row per contact, ready to clean up and import, or to hand to an assistant to turn into contacts.`;
+
+  // Build the attachment from the stored rows (one row per contact) so the email carries a
+  // usable file, not just a list to re-read. Re-query by the ids we just created to get the
+  // DB-shaped rows the CSV builder expects.
+  let attachments;
+  const ids = created.map(c => c.id).filter(Boolean);
+  if (ids.length) {
+    const { rows: csvRows } = await query(
+      `SELECT category, person_name, person_email, new_email, new_company, role,
+              alt_contacts, source_quote, from_email, subject, message_date, confidence
+         FROM ooo_suggestions WHERE id = ANY($1)`,
+      [ids]
+    );
+    const csv = suggestionsToCsv(csvRows);
+    const date = new Date().toISOString().slice(0, 10);
+    attachments = [{
+      filename: `ooo-contact-updates-${date}.csv`,
+      content: '﻿' + csv,               // BOM so Excel reads accented names correctly
+      contentType: 'text/csv; charset=utf-8',
+    }];
+  }
 
   await sendSystemEmail({
     to,
     subject: `MailFlow: ${created.length} contact update${created.length === 1 ? '' : 's'} to review`,
     text,
+    attachments,
   });
 }

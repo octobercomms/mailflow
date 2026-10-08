@@ -1089,7 +1089,7 @@
       "notConfigured": "No AI provider configured yet.",
       "remove": "Remove configuration",
       "oooTitle": "Contact updates from out-of-office replies",
-      "oooDescription": "Scan your out-of-office and auto-reply emails across every account and folder for lasting contact changes: a new address, someone who has moved, or another person to add. MailFlow emails you a list to review. Nothing is changed automatically.",
+      "oooDescription": "Scan your out-of-office and auto-reply emails across every account and folder for lasting contact changes: a new address, someone who has moved, or another person to add. MailFlow emails you a CSV and you can download one here, one row per contact, ready to import. Nothing is changed automatically.",
       "oooScan": "Scan mail for contact updates",
       "oooStarted": "Scan started. You'll get an email with anything it finds.",
       "oooRunning": "A scan is already running.",
@@ -1105,7 +1105,9 @@
       "oooMentioned": "Mentioned contact",
       "oooFrom": "From",
       "oooDismiss": "Dismiss",
-      "featureOooDaily": "Scan out-of-office replies daily"
+      "featureOooDaily": "Scan out-of-office replies daily",
+      "oooExport": "Download CSV",
+      "oooExportFail": "Could not download the CSV."
     },
     "aiActions": {
       "description": "Create your own AI actions. They appear in the AI menu when reading a message, alongside Summarize. Each action's prompt is applied to the message content.",

@@ -1022,7 +1022,7 @@
       "notConfigured": "Noch kein KI-Anbieter konfiguriert.",
       "remove": "Konfiguration entfernen",
       "oooTitle": "Kontakt-Updates aus Abwesenheitsantworten",
-      "oooDescription": "Durchsucht Ihre Abwesenheits- und automatischen Antworten über alle Konten und Ordner nach dauerhaften Kontaktänderungen: eine neue Adresse, jemand der gewechselt hat, oder eine weitere hinzuzufügende Person. MailFlow sendet Ihnen eine Liste zur Prüfung. Es wird nichts automatisch geändert.",
+      "oooDescription": "Durchsucht Abwesenheits- und automatische Antworten über alle Konten und Ordner nach dauerhaften Kontaktänderungen: eine neue Adresse, jemand ist umgezogen oder eine weitere Person zum Hinzufügen. MailFlow sendet Ihnen eine CSV per E-Mail, und Sie können hier eine herunterladen, eine Zeile pro Kontakt, bereit zum Import. Es wird nichts automatisch geändert.",
       "oooScan": "E-Mails nach Kontakt-Updates durchsuchen",
       "oooStarted": "Scan gestartet. Sie erhalten eine E-Mail mit den Ergebnissen.",
       "oooRunning": "Ein Scan läuft bereits.",
@@ -1038,7 +1038,9 @@
       "oooMentioned": "Erwähnter Kontakt",
       "oooFrom": "Von",
       "oooDismiss": "Verwerfen",
-      "featureOooDaily": "Abwesenheitsantworten täglich scannen"
+      "featureOooDaily": "Abwesenheitsantworten täglich scannen",
+      "oooExport": "CSV herunterladen",
+      "oooExportFail": "CSV konnte nicht heruntergeladen werden."
     },
     "aiActions": {
       "description": "Erstellen Sie eigene KI-Aktionen. Sie erscheinen beim Lesen einer Nachricht im KI-Menü neben „Zusammenfassen“. Der Prompt jeder Aktion wird auf den Nachrichteninhalt angewendet.",

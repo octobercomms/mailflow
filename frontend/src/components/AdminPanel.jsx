@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/index.js';
 import { newAiAction, AI_ACTION_LIMITS } from '../aiActions.js';
 import { useMobile } from '../hooks/useMobile.js';
-import { api } from '../utils/api.js';
+import { api, CSRF_HEADER, CSRF_VALUE } from '../utils/api.js';
 import { THEMES, applyTheme, applyCustomCss } from '../themes.js';
 import { FONT_SETS, loadFontSet } from '../fonts.js';
 import { LAYOUTS, applyLayout } from '../layouts.js';
@@ -3940,6 +3940,28 @@ function AISection() {
     try { await api.ai.dismissOooSuggestion(id); } catch { loadOoo(); }
   };
 
+  const handleOooExport = async () => {
+    setMsg(null);
+    try {
+      const res = await fetch('/api/ooo/suggestions/export', {
+        credentials: 'include',
+        headers: { [CSRF_HEADER]: CSRF_VALUE },
+      });
+      if (!res.ok) throw new Error(t('admin.ai.oooExportFail'));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ooo-contact-updates-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setMsg({ type: 'error', text: e.message });
+    }
+  };
+
   const field = (label, key, type = 'text', placeholder = '') => (
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 }}>{label}</label>
@@ -4052,6 +4074,15 @@ function AISection() {
           >
             {(oooBusy || oooStatus?.running) ? t('admin.ai.oooScanning') : t('admin.ai.oooScan')}
           </button>
+          {(oooSuggestions.length > 0 || oooStatus?.total > 0) && (
+            <button
+              type="button"
+              onClick={handleOooExport}
+              style={{ padding: '8px 16px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+            >
+              {t('admin.ai.oooExport')}
+            </button>
+          )}
           {oooStatus?.running && (
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('admin.ai.oooInProgress')}</span>
           )}

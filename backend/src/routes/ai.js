@@ -6,7 +6,7 @@ import { validateHost } from '../services/hostValidation.js';
 import { getConnectionPolicy } from '../services/connectionPolicy.js';
 import { imapManager } from '../index.js';
 import { generateFolderTasks, loadAiConfig, loadLegendText, saveLegendText, parseLegend } from '../services/taskGenerator.js';
-import { scanUserOoo } from '../services/oooScanner.js';
+import { scanUserOoo, suggestionsToCsv } from '../services/oooScanner.js';
 
 const router = Router();
 
@@ -331,6 +331,28 @@ router.get('/ooo/suggestions', requireAuth, async (req, res) => {
     res.json({ suggestions: rows });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to load suggestions' });
+  }
+});
+
+// Download the current suggestions as a contact-upload CSV (one row per contact).
+router.get('/ooo/suggestions/export', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT category, person_name, person_email, new_email, new_company, role,
+              alt_contacts, source_quote, from_email, subject, message_date, confidence
+         FROM ooo_suggestions
+        WHERE user_id = $1 AND status <> 'dismissed'
+        ORDER BY created_at DESC
+        LIMIT 2000`,
+      [req.session.userId]
+    );
+    const csv = suggestionsToCsv(rows);
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="ooo-contact-updates-${date}.csv"`);
+    res.send('﻿' + csv); // BOM so Excel reads accented names correctly
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to export suggestions' });
   }
 });
 
