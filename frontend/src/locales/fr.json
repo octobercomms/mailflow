@@ -1089,7 +1089,7 @@
       "notConfigured": "Aucun fournisseur IA configuré.",
       "remove": "Supprimer la configuration",
       "oooTitle": "Mises à jour de contacts depuis les réponses d’absence",
-      "oooDescription": "Analyse vos réponses d’absence et automatiques dans tous les comptes et dossiers à la recherche de changements de contact durables : une nouvelle adresse, une personne qui a changé, ou quelqu’un d’autre à ajouter. MailFlow vous envoie une liste à examiner. Rien n’est modifié automatiquement.",
+      "oooDescription": "Analyse vos réponses d'absence et automatiques sur tous les comptes et dossiers à la recherche de changements de contact durables : une nouvelle adresse, une personne qui a changé, ou un autre contact à ajouter. MailFlow vous envoie un CSV par e-mail et vous pouvez en télécharger un ici, une ligne par contact, prêt à importer. Rien n'est modifié automatiquement.",
       "oooScan": "Analyser les e-mails pour les mises à jour de contacts",
       "oooStarted": "Analyse lancée. Vous recevrez un e-mail avec les résultats.",
       "oooRunning": "Une analyse est déjà en cours.",
@@ -1105,7 +1105,9 @@
       "oooMentioned": "Contact mentionné",
       "oooFrom": "De",
       "oooDismiss": "Ignorer",
-      "featureOooDaily": "Analyser les réponses d'absence chaque jour"
+      "featureOooDaily": "Analyser les réponses d'absence chaque jour",
+      "oooExport": "Télécharger le CSV",
+      "oooExportFail": "Impossible de télécharger le CSV."
     },
     "aiActions": {
       "description": "Créez vos propres actions IA. Elles apparaissent dans le menu IA lors de la lecture d'un message, à côté de Résumer. Le prompt de chaque action est appliqué au contenu du message.",

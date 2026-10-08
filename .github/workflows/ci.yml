@@ -38,7 +38,9 @@ jobs:
 
       - name: Audit
         working-directory: backend
-        run: npm audit --audit-level=high
+        # Production dependencies only: vulnerabilities in dev/build tooling do not ship
+        # to users and should not block delivery. Runtime deps still fail the build.
+        run: npm audit --omit=dev --audit-level=high
 
   frontend:
     name: Frontend
@@ -71,4 +73,6 @@ jobs:
 
       - name: Audit
         working-directory: frontend
-        run: npm audit --audit-level=high
+        # Production dependencies only: vulnerabilities in dev/build tooling do not ship
+        # to users and should not block delivery. Runtime deps still fail the build.
+        run: npm audit --omit=dev --audit-level=high

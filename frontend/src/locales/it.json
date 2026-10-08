@@ -1089,7 +1089,7 @@
       "notConfigured": "Nessun provider IA configurato.",
       "remove": "Rimuovi configurazione",
       "oooTitle": "Aggiornamenti dei contatti dalle risposte di assenza",
-      "oooDescription": "Analizza le tue risposte di assenza e automatiche in tutti gli account e le cartelle per individuare cambiamenti di contatto duraturi: un nuovo indirizzo, qualcuno che si è spostato o un’altra persona da aggiungere. MailFlow ti invia un elenco da rivedere. Nulla viene modificato automaticamente.",
+      "oooDescription": "Analizza le risposte fuori sede e automatiche in tutti gli account e le cartelle per trovare cambi di contatto duraturi: un nuovo indirizzo, qualcuno che si è spostato o un altro contatto da aggiungere. MailFlow ti invia un CSV via email e puoi scaricarne uno qui, una riga per contatto, pronto da importare. Nulla viene modificato automaticamente.",
       "oooScan": "Analizza la posta per aggiornamenti dei contatti",
       "oooStarted": "Analisi avviata. Riceverai un’email con ciò che trova.",
       "oooRunning": "Un’analisi è già in corso.",
@@ -1105,7 +1105,9 @@
       "oooMentioned": "Contatto menzionato",
       "oooFrom": "Da",
       "oooDismiss": "Ignora",
-      "featureOooDaily": "Analizza le risposte fuori sede ogni giorno"
+      "featureOooDaily": "Analizza le risposte fuori sede ogni giorno",
+      "oooExport": "Scarica CSV",
+      "oooExportFail": "Impossibile scaricare il CSV."
     },
     "aiActions": {
       "description": "Crea le tue azioni IA. Appaiono nel menu IA durante la lettura di un messaggio, accanto a Riassumi. Il prompt di ogni azione viene applicato al contenuto del messaggio.",

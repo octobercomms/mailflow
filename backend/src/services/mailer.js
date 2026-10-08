@@ -3,7 +3,7 @@ import { query } from './db.js';
 import { decrypt } from './encryption.js';
 import { resolveForConnection } from './hostValidation.js';
 
-export async function sendSystemEmail({ to, subject, text, html }) {
+export async function sendSystemEmail({ to, subject, text, html, attachments }) {
   const sysResult = await query(
     "SELECT value FROM system_settings WHERE key = 'system_email_config'"
   );
@@ -22,5 +22,5 @@ export async function sendSystemEmail({ to, subject, text, html }) {
     tls,
   });
   const from = `${cfg.fromName || 'MailFlow'} <${cfg.fromEmail || cfg.user}>`;
-  await transport.sendMail({ from, to, subject, text, html });
+  await transport.sendMail({ from, to, subject, text, html, attachments });
 }

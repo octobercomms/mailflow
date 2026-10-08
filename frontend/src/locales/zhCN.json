@@ -1089,7 +1089,7 @@
       "notConfigured": "尚未配置 AI 提供商。",
       "remove": "删除配置",
       "oooTitle": "从外出自动回复中更新联系人",
-      "oooDescription": "扫描所有账户和文件夹中的外出/自动回复邮件，查找持久的联系人变更：新地址、已离职或换单位的人，或需要新增的其他人。MailFlow 会给你发送一份清单供审核。不会自动更改任何内容。",
+      "oooDescription": "扫描所有账户和文件夹中的外出和自动回复邮件，查找持久的联系人变更：新地址、已离职或变动的人，或需要新增的联系人。MailFlow 会通过邮件向你发送一个 CSV，你也可以在此下载，每位联系人一行，可直接导入。不会自动更改任何内容。",
       "oooScan": "扫描邮件以更新联系人",
       "oooStarted": "扫描已开始。找到结果后会给你发送邮件。",
       "oooRunning": "扫描已在进行中。",
@@ -1105,7 +1105,9 @@
       "oooMentioned": "提及的联系人",
       "oooFrom": "来自",
       "oooDismiss": "忽略",
-      "featureOooDaily": "每日扫描外出自动回复"
+      "featureOooDaily": "每日扫描外出自动回复",
+      "oooExport": "下载 CSV",
+      "oooExportFail": "无法下载 CSV。"
     },
     "aiActions": {
       "description": "创建你自己的 AI 操作。它们会在阅读邮件时出现在 AI 菜单中，与“摘要”并列。每个操作的提示词会应用于邮件内容。",
