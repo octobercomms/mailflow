@@ -2,7 +2,7 @@ import { query } from './db.js';
 import { refreshUserTasks } from './taskRefresh.js';
 import { runDraftSweep } from './draftWriter.js';
 import { generateDailyBrief } from './dailyBrief.js';
-import { loadAiConfig } from './taskGenerator.js';
+import { loadAiConfig, loadBackgroundAiConfig } from './taskGenerator.js';
 import { scanUserOoo } from './oooScanner.js';
 
 // Daily auto-refresh of the Tasks hub. Polls every few minutes; for each user who
@@ -50,6 +50,11 @@ async function tick() {
   try { users = await query('SELECT id, preferences FROM users'); }
   catch (e) { console.warn('[task-scheduler] user query failed:', e.message); return; }
 
+  // Background automation runs on Haiku (see loadBackgroundAiConfig), not the configured
+  // interactive model. Null when AI is off/unconfigured — the jobs below then no-op.
+  let bgCfg = null;
+  try { bgCfg = await loadBackgroundAiConfig(); } catch { /* AI disabled or unconfigured */ }
+
   for (const u of users.rows) {
     const prefs = u.preferences || {};
     const cfg = prefs.taskAutoRefresh;
@@ -65,13 +70,13 @@ async function tick() {
     // then simply waits until tomorrow rather than every 5 minutes all day.
     await stampLastRun(u.id, date).catch(() => {});
     try {
-      const r = await refreshUserTasks(u.id);
+      const r = await refreshUserTasks(u.id, { cfg: bgCfg });
       console.log(`[task-scheduler] ${u.id}: +${r.added} tasks, ${r.completed} auto-done (${r.folders} folders)`);
     } catch (e) {
       if (e.code !== 'NO_SOURCES') console.warn(`[task-scheduler] ${u.id}: ${e.message}`);
     }
     // Freshen the morning brief off the just-refreshed list, so it's waiting.
-    try { await generateDailyBrief(u.id); }
+    try { await generateDailyBrief(u.id, bgCfg); }
     catch (e) { console.warn(`[task-scheduler] brief ${u.id}: ${e.message}`); }
   }
 }
@@ -83,12 +88,14 @@ async function draftTick() {
   let users;
   try { users = await query("SELECT id, preferences FROM users"); }
   catch (e) { console.warn('[draft-sweep] user query failed:', e.message); return; }
+  let bgCfg = null;
+  try { bgCfg = await loadBackgroundAiConfig(); } catch { /* AI disabled or unconfigured */ }
   for (const u of users.rows) {
     const prefs = u.preferences || {};
     if (prefs.autoDrafts?.enabled !== true) continue;
     if (!hasSources(prefs)) continue;
     try {
-      const r = await runDraftSweep(u.id);
+      const r = await runDraftSweep(u.id, { cfg: bgCfg });
       if (r.created) console.log(`[draft-sweep] ${u.id}: drafted ${r.created} repl${r.created === 1 ? 'y' : 'ies'}`);
     } catch (e) {
       if (e.code !== 'NO_SOURCES') console.warn(`[draft-sweep] ${u.id}: ${e.message}`);

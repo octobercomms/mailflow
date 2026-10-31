@@ -71,7 +71,7 @@ export function startUserRefresh(userId, opts = {}) {
 // headings are never touched.
 // Returns { added, completed, groups, folders, errors, rebuilt }.
 async function runRefresh(userId, opts = {}) {
-  const cfg = await loadAiConfig();   // throws with .status if unavailable
+  const cfg = opts.cfg || await loadAiConfig();   // background scheduler passes a Haiku cfg; throws with .status if unavailable
 
   const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [userId]);
   const sources = prefRow.rows[0]?.preferences?.taskSources || {};
