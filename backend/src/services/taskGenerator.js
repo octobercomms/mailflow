@@ -67,6 +67,17 @@ export async function loadAiConfig() {
   return cfg;
 }
 
+// Model for unattended background automation: the daily task refresh, the morning brief,
+// and the auto-draft sweep. These run every day with no human watching, reading whole
+// folders of mail, so they use Haiku regardless of the configured interactive model —
+// adequate for the job and a fraction of the cost. Interactive, user-triggered calls
+// (compose, summarize, a manual refresh) keep the configured model. Mirrors the OOO
+// scanner's hard-wired model.
+export const BACKGROUND_MODEL = 'claude-haiku-4-5';
+export async function loadBackgroundAiConfig() {
+  return { ...(await loadAiConfig()), model: BACKGROUND_MODEL };
+}
+
 // ── Generic non-streaming completion ──────────────────────────────────────────
 // One place for the OpenAI-compatible /chat/completions call the assistant features
 // (tasks, client briefs, drafts, daily brief, research) all share. Note: this model

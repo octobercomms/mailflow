@@ -113,8 +113,8 @@ export async function generateReplyDraft({ message, bodyText, cfg, briefBlock, v
 
 // Sweep a user's watched folders and draft replies for recent, unanswered, human
 // emails that don't have a suggestion yet. Bounded per run. Returns a summary.
-export async function runDraftSweep(userId, { max = SWEEP_MAX_PER_RUN } = {}) {
-  const cfg = await loadAiConfig();
+export async function runDraftSweep(userId, { max = SWEEP_MAX_PER_RUN, cfg: cfgOverride } = {}) {
+  const cfg = cfgOverride || await loadAiConfig();   // background scheduler passes a Haiku cfg
 
   const prefRow = await query('SELECT preferences FROM users WHERE id = $1', [userId]);
   const prefs = prefRow.rows[0]?.preferences || {};
