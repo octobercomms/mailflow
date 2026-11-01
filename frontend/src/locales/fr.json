@@ -1107,7 +1107,8 @@
       "oooDismiss": "Ignorer",
       "featureOooDaily": "Analyser les réponses d'absence chaque jour",
       "oooExport": "Télécharger le CSV",
-      "oooExportFail": "Impossible de télécharger le CSV."
+      "oooExportFail": "Impossible de télécharger le CSV.",
+      "featureBackgroundAutomation": "Actualisation quotidienne automatique des tâches"
     },
     "aiActions": {
       "description": "Créez vos propres actions IA. Elles apparaissent dans le menu IA lors de la lecture d'un message, à côté de Résumer. Le prompt de chaque action est appliqué au contenu du message.",

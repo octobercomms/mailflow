@@ -1040,7 +1040,8 @@
       "oooDismiss": "Verwerfen",
       "featureOooDaily": "Abwesenheitsantworten täglich scannen",
       "oooExport": "CSV herunterladen",
-      "oooExportFail": "CSV konnte nicht heruntergeladen werden."
+      "oooExportFail": "CSV konnte nicht heruntergeladen werden.",
+      "featureBackgroundAutomation": "Automatische tägliche Aufgabenaktualisierung"
     },
     "aiActions": {
       "description": "Erstellen Sie eigene KI-Aktionen. Sie erscheinen beim Lesen einer Nachricht im KI-Menü neben „Zusammenfassen“. Der Prompt jeder Aktion wird auf den Nachrichteninhalt angewendet.",

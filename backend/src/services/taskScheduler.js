@@ -54,6 +54,9 @@ async function tick() {
   // interactive model. Null when AI is off/unconfigured — the jobs below then no-op.
   let bgCfg = null;
   try { bgCfg = await loadBackgroundAiConfig(); } catch { /* AI disabled or unconfigured */ }
+  // Master pause switch: when background automation is turned off, skip the task refresh
+  // and morning brief entirely (the OOO scan has its own toggle and is unaffected).
+  if (bgCfg?.features?.backgroundAutomation === false) return;
 
   for (const u of users.rows) {
     const prefs = u.preferences || {};
@@ -90,6 +93,7 @@ async function draftTick() {
   catch (e) { console.warn('[draft-sweep] user query failed:', e.message); return; }
   let bgCfg = null;
   try { bgCfg = await loadBackgroundAiConfig(); } catch { /* AI disabled or unconfigured */ }
+  if (bgCfg?.features?.backgroundAutomation === false) return; // master pause switch
   for (const u of users.rows) {
     const prefs = u.preferences || {};
     if (prefs.autoDrafts?.enabled !== true) continue;
