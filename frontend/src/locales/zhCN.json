@@ -1107,7 +1107,8 @@
       "oooDismiss": "忽略",
       "featureOooDaily": "每日扫描外出自动回复",
       "oooExport": "下载 CSV",
-      "oooExportFail": "无法下载 CSV。"
+      "oooExportFail": "无法下载 CSV。",
+      "featureBackgroundAutomation": "每日自动刷新任务"
     },
     "aiActions": {
       "description": "创建你自己的 AI 操作。它们会在阅读邮件时出现在 AI 菜单中，与“摘要”并列。每个操作的提示词会应用于邮件内容。",

@@ -62,6 +62,9 @@ router.patch('/admin/ai', requireAdmin, async (req, res) => {
       summarize: features?.summarize !== false,
       // Opt-in: run the out-of-office contact scan once a day (off unless explicitly set).
       oooDaily: features?.oooDaily === true,
+      // Master switch for the daily task/brief/draft automation. Default on; turn off to
+      // pause all of that background AI spend without losing any per-user settings.
+      backgroundAutomation: features?.backgroundAutomation !== false,
     },
   };
 

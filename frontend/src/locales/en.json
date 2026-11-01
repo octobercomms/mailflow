@@ -1107,7 +1107,8 @@
       "oooDismiss": "Dismiss",
       "featureOooDaily": "Scan out-of-office replies daily",
       "oooExport": "Download CSV",
-      "oooExportFail": "Could not download the CSV."
+      "oooExportFail": "Could not download the CSV.",
+      "featureBackgroundAutomation": "Automatic daily task refresh"
     },
     "aiActions": {
       "description": "Create your own AI actions. They appear in the AI menu when reading a message, alongside Summarize. Each action's prompt is applied to the message content.",
